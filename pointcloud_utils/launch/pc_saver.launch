@@ -1,0 +1,6 @@
+<launch>
+    <node pkg="pointcloud_utils" type="point_cloud_2_to_png.py" name="pc_saver"
+          required="true" output="screen" cwd="node">
+      	   <param name="cloud_topic" 		value="/velodyne_points" />
+    </node>
+</launch>

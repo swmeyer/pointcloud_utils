@@ -1,0 +1,13 @@
+<launch>
+    <node pkg="pointcloud_utils" type="ground_bounce_counter" name="ground_error_counter" required="true" output="screen">
+      	   <param name="cloud_topic" value="/velodyne_points" />
+      	   <param name="base_frame"  value="base_link" />
+
+      	   <param name="x_min" value="9"  />
+      	   <param name="x_max" value="10"  />
+      	   <param name="y_min" value="-0.0" />
+      	   <param name="y_max" value="0.025"  />
+      	   <param name="z_min" value="-1" />
+      	   <param name="z_max" value="1"  />
+    </node>
+</launch>

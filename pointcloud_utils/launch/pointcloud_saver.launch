@@ -1,0 +1,8 @@
+<launch>
+    <node pkg="pointcloud_utils" type="pointcloud_saver" name="pointcloud_saver"
+          required="true" output="screen">
+        <param name="cloud_topic" 		value="/velodyne_points" />
+        <param name="filename_base" 	value="$(find pointcloud_utils)/points/points" />
+        <param name="file_extension" 	value=".csv"   />
+    </node>
+</launch>
