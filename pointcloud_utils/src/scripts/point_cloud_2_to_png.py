@@ -25,6 +25,7 @@ show_image = False
 publish_image = False
 save_image = True
 binary_mode = True
+folder_name = "images"
 
 
 map_height = 1024
@@ -34,12 +35,12 @@ resolution = 0.1
 z_scale_max = -3
 z_scale_min = 3
 
-x_min = -10
-x_max = 200
-y_min = -50
-y_max = 50
-z_min = 0
-z_max = 100
+x_min = -1000
+x_max = 1000
+y_min = -1000
+y_max = 1000
+z_min = -1000
+z_max = 1000
 
 file_count = 0
 
@@ -102,6 +103,10 @@ def pointcloudCallback(msg):
 			p = unpack_from(data, offset)
 			offset += point_step
 			if (p[2] < z_min or p[2] > z_max):
+				print("skipping point")
+				print(p[2])
+				print(z_min)
+				print(z_max)
 				continue
 
 			global centered
@@ -141,7 +146,7 @@ def pointcloudCallback(msg):
 
 	if save_image:
 		global file_count
-		filepath = os.path.join(os.getcwd(), "images")
+		filepath = os.path.join(os.getcwd(), folder_name)
 		if not os.path.exists(filepath):
 			print("making directory")
 			print(filepath)
@@ -149,7 +154,7 @@ def pointcloudCallback(msg):
 			os.makedirs(filepath)
 		print("saving to: ")
 		print(filepath)
-		filename = os.path.join(filepath, "points" + str(file_count) + ".png")
+		filename = os.path.join(filepath, "points" + str(file_count) + "_" + str(msg.header.stamp.secs) + "_" + str(msg.header.stamp.nsecs) + ".png")
 		
 		
 		file_count = file_count + 1
@@ -170,6 +175,27 @@ if __name__ == '__main__':
 	binary_mode      = rospy.get_param('~binary_mode', False)
 	save_image       = rospy.get_param('~save_image', False)
 	publish_image 	 = rospy.get_param('~publish_iamge', True)
+	folder_name 	 = rospy.get_param('~folder_name', "images")
+
+	x_max 			 = rospy.get_param('~x_max', 1000)
+	x_min 			 = rospy.get_param('~x_min', -1000)
+	y_max 			 = rospy.get_param('~y_max', 1000)
+	y_min 			 = rospy.get_param('~y_min', -1000)
+	z_max 			 = rospy.get_param('~z_max', 1000)
+	z_min 			 = rospy.get_param('~z_min', -1000)
+
+	resolution       = rospy.get_param("~resolution", 0.1)
+	map_width        = rospy.get_param("~map_width", 1024)
+	map_height       = rospy.get_param("~map_height", 1024)
+
+	recommended_x = (map_height * resolution) / 2
+	recommended_y = (map_width * resolution) / 2
+
+	print("Recommended bounds: ")
+	print("x: ")
+	print(-recommended_x, recommended_x)
+	print("y: ")
+	print(-recommended_y, recommended_y)
 
 	#todo: get map params here
 	#todo: get save dir here
