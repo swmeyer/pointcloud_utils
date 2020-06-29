@@ -101,6 +101,8 @@ def pointcloudCallback(msg):
 		for u in xrange(width):
 			p = unpack_from(data, offset)
 			offset += point_step
+			if (p[2] < z_min or p[2] > z_max):
+				continue
 
 			global centered
 			if centered:
