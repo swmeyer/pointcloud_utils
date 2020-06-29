@@ -3,8 +3,9 @@
     	<param name="cloud_sub_topic" value="/airsim_node/PhysXCar/lidar/VLP16_1" />
     	<param name="scan_pub_topic" value="/scan" />
     	<param name="scan_angle"     value="0.0" />     # [rad]
+        <param name="scan_height"    value="1" />
     	<param name="scan_frame" 	 value="VLP16_1"/>
-    	<param name="position_tolerance" value="0.1" /> # [m]
+    	<param name="position_tolerance" value="0.5" /> # [m] was 0.1
     	<param name="resolution" 	 value="0.001" />     # [rad]
     </node>
 

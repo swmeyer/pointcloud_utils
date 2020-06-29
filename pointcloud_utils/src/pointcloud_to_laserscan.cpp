@@ -42,6 +42,7 @@ typedef struct
 const float PI = 3.14;
 ros::Publisher scan_pub;
 float angle; //[rad] vertical angle at which to report the laser scan
+float scan_height; //[m] height of laserscan origin in original frame
 float position_tolerance; //[m] tolerance to accept a point into the laser scan
 float resolution; //[rad] azimuthal increment for laser scan
 int num_pts; //number of increments around a full-circle
@@ -145,7 +146,13 @@ void cloudCallback(const sensor_msgs::PointCloud2::ConstPtr& msg)
 	{
 		//std::cout << "point\n";
 		range = std::sqrt(std::pow(pt.x, 2) + std::pow(pt.y, 2) + std::pow(pt.z, 2));
-		z_target = range * std::sin(angle);
+		if (angle == 0)
+		{
+			z_target = scan_height;
+		} else
+		{
+			z_target = range * std::sin(angle) + scan_height;
+		}
 		
 		if (inTolerance(z_target, pt.z, position_tolerance))
 		{
@@ -201,6 +208,7 @@ int main(int argc, char* argv[])
 	n_.param<std::string>("scan_pub_topic",  scan_pub_topic,  "/scan");
 
 	n_.param<float>("scan_angle", angle, 0.0);
+	n_.param<float>("scan_height", scan_height, 0.0);
 	n_.param<float>("position_tolerance", position_tolerance, 0.1);
 	n_.param<float>("resolution", resolution, 0.01);
 	n_.param<std::string>("scan_frame", scan_frame, "scan");
