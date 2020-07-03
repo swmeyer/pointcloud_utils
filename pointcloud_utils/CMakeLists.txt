@@ -71,7 +71,7 @@ add_executable(ground_bounce_counter src/ground_error_detector.cpp)
 add_dependencies(ground_bounce_counter ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(ground_bounce_counter ${catkin_LIBRARIES})
 
-add_executable(pointcloud_grid_parser src/pointcloud_grid_parser.cpp)
+add_executable(pointcloud_grid_parser src/pointcloud_grid_parser_node.cpp src/pointcloud_grid_parser.cpp)
 add_dependencies(pointcloud_grid_parser ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS}  ${PROJECT_NAME}_gencfg)
 target_link_libraries(pointcloud_grid_parser ${catkin_LIBRARIES})
 

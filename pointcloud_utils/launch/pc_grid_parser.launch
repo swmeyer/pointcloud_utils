@@ -1,10 +1,10 @@
 <launch>
-    <!-- <include file="$(find pointcloud_utils)/launch/lidar_calibration.launch" /> -->
+    <include file="$(find pointcloud_utils)/launch/lidar_calibration.launch" />
 
     <node pkg="pointcloud_utils" type="pointcloud_grid_parser" name="pc_grid_parser" required="true" output="screen">
-        <param name="cloud_topic" 		value="/airsim_node/PhysXCar/lidar/VLP16_1" />
-        <param name="base_frame"      value="VLP16_1" />
-        <param name="lidar_frame"     value="VLP16_1" />
+        <param name="cloud_topic" 		value="/velodyne_points" />
+        <param name="base_frame"      value="remote/base_footprint" />
+        <param name="lidar_frame"     value="remote/lidar_link" />
         <param name="image_pub_topic" 	value="/grid_image" />
         <param name="costmap_pub_topic"	value="/map" />
 
@@ -12,6 +12,7 @@
         <param name="constant_map_size" value="true" />
         <param name="use_bounds" 		value="true" />
         <param name="recalculate_dynamic_bounds" value="false" />
+        <param name="use_raytrace_to_clear_space" value="true" />
 
         <param name="map_resolution" 	value="0.5" /> #m/cell
         <param name="map_width" 		value="512" /> #cell was 1024
@@ -23,6 +24,8 @@
 
         <param name="centered_x"      value="true" />
         <param name="centered_y"      value="true" />
+
+        <param name="use_shell_pointstruct" value="false" />
 
         #bounds        
       	<param name="x_min" value="-100"  /> #was -10
