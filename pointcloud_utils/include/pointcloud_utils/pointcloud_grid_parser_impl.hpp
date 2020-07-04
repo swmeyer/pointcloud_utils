@@ -273,11 +273,16 @@ namespace pointcloud_utils
 			map_grid_bytes = std::vector<uint8_t>(map_grid_bytes.size(), pointcloud_utils::costmapValues::UNKNOWN);
 		}
 
+		std::vector<pointcloud_utils::polarPointstruct> minimal_polar_cloud;
+		std::vector<pointcloud_utils::simplePointstruct> minimal_cartesian_cloud;
+
 		int skip_count = 0;
 		int pass_count = 0;
 		//fill grid -------------------------------------------------
 		for (T pt : cloud) 
 		{	
+			//TODO: technically, we should place all the black points before ray-tracing...
+
 			if (//pt.z < settings.z_min || pt.z > settings.z_max ||
 				pt.x < settings.x_min || pt.x > settings.x_max ||
 				pt.y < settings.y_min || pt.y > settings.y_max)
@@ -368,13 +373,21 @@ namespace pointcloud_utils
 			if (i == map_center_i)
 			{
 				std::cout << "We found a horizontal line to trace!!!\n";
+
 				int start_point, end_point;
-				start_point = std::max(std::min(map_center_j, j), (uint) 0);
-				end_point = std::min(std::max(map_center_j, j), (uint) settings.map_width);
+
+				// always start from map center and fan outward
+				end_point = std::min(std::max(j, (uint) 0), (uint) settings.map_width);
+				start_point = std::min((int) map_center_j, end_point);
+				end_point = std::max((int) map_center_j, end_point);
+
+				// //Start at the lower of the detection point or map center (while still on the map), and end at the greater of the two (still on the map)
+				// start_point = std::max(std::min(map_center_j, j), (uint) 0);
+				// end_point = std::min(std::max(map_center_j, j), (uint) settings.map_width);
 				
 				int n = i;
-// 
-				for (int m = start_point; m < end_point; m++)
+
+				for (int m = start_point; m <= end_point; m++)
 				{
 					if (n < settings.map_height && m < settings.map_width && n >= 0 && m >= 0)
 					{
@@ -383,6 +396,22 @@ namespace pointcloud_utils
 							//mark freespace
 							map_grid_bytes[settings.map_width * (settings.map_height - n) + (settings.map_width - m)] = pointcloud_utils::costmapValues::FREE;
 							grid_bytes[settings.map_width * n + m] = pointcloud_utils::costmapValues::FREE;  
+						} else
+						{
+							//save minimal point
+							pointcloud_utils::simplePointstruct min_cart;
+							min_cart.x = n;
+							min_cart.y = m;
+							min_cart.z = 0; //todo: save the z from the real point
+							minimal_cartesian_cloud.push_back(min_cart);
+
+							pointcloud_utils::polarPointstruct min_polar;
+							min_polar.azimuth = std::atan2(m, n); //rad
+							min_polar.range = std::sqrt(std::pow(m, 2) + std::pow(n, 2));
+							min_polar.z = min_cart.z;
+							minimal_polar_cloud.push_back(min_polar);
+
+							break;
 						}
 					}
 				}
@@ -395,14 +424,21 @@ namespace pointcloud_utils
 				double a_slope = y_diff / x_diff;
 				double b_intersection = j - (a_slope * i);
 				//std::cout << "line equation: y = " << a_slope << " * x + " << b_intersection << "\n";
-				//Start at the lower of the detection point or map center (while still on the map), and end at the greater of the two (still on the map)
+				
 				int start_point, end_point;
-				start_point = std::max(std::min(map_center_i, i), (uint) 0);
-				//std::cout << "Start: " << start_point << "\n";
-				end_point = std::min(std::max(map_center_i, i), (uint) settings.map_height);
+				
+				// always start from map center and fan outward
+				end_point = std::min(std::max(i, (uint) 0), (uint) settings.map_height);
+				start_point = std::min((int) map_center_i, end_point);
+				end_point = std::max((int) map_center_i, end_point);
+
+				// //Start at the lower of the detection point or map center (while still on the map), and end at the greater of the two (still on the map)
+				// start_point = std::max(std::min(map_center_i, i), (uint) 0);
+				// end_point = std::min(std::max(map_center_i, i), (uint) settings.map_height);
+				
 				//std::cout << "Starting loop for raytrace\n";
 				//std::cout << "Start, end: " << start_point << ", " << end_point << "\n";
-				for (int n = start_point; n < end_point; n++)
+				for (int n = start_point; n <= end_point; n++)
 				{
 					int m = a_slope * n + b_intersection;
 					//std::cout << "i, j: " << n << ", " << m << "\n";
@@ -414,13 +450,31 @@ namespace pointcloud_utils
 							//mark freespace
 							map_grid_bytes[settings.map_width * (settings.map_height - n) + (settings.map_width - m)] = pointcloud_utils::costmapValues::FREE;
 							grid_bytes[settings.map_width * n + m] = pointcloud_utils::costmapValues::FREE;  
+						}  else
+						{
+							//save minimal point
+							pointcloud_utils::simplePointstruct min_cart;
+							min_cart.x = n;
+							min_cart.y = m;
+							min_cart.z = 0; //todo: save the z from the real point
+							minimal_cartesian_cloud.push_back(min_cart);
+
+							pointcloud_utils::polarPointstruct min_polar;
+							min_polar.azimuth = std::atan2(m, n); //rad
+							min_polar.range = std::sqrt(std::pow(m, 2) + std::pow(n, 2));
+							min_polar.z = min_cart.z;
+							minimal_polar_cloud.push_back(min_polar);
+
+							break;
 						}
 					}
 				}				
 			}
 		}
+
+		last_cartesian_cloud = minimal_cartesian_cloud;
+		last_polar_cloud = minimal_polar_cloud;
 		std::cout << "Out-of-bounds point count: " << skip_count << "\n In-bounds point count: " << pass_count << "\n";
-	
 	}
 
 

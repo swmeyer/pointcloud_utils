@@ -67,6 +67,17 @@ namespace pointcloud_utils
 	}
 
 
+	void PointCloudGridParser::getLastCartesianCloud(std::vector<pointcloud_utils::simplePointstruct>& cloud)
+	{
+		cloud = this->last_cartesian_cloud;
+	}
+
+	void PointCloudGridParser::getLastPolarCloud(std::vector<pointcloud_utils::polarPointstruct>& cloud)
+	{
+		cloud = this->last_polar_cloud;
+	}
+
+
 	//========================================
 	/// @fn         transformToOutputFrame
 	/// @brief      handle transform to base frame

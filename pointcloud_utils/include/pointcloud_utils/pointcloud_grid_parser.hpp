@@ -87,6 +87,9 @@ namespace pointcloud_utils
 		void getMapBytes(std::vector<uint8_t>& bytes);
 		void getGridBytes(std::vector<uint8_t>& bytes);
 
+		void getLastCartesianCloud(std::vector<pointcloud_utils::simplePointstruct>& cloud);
+		void getLastPolarCloud(std::vector<pointcloud_utils::polarPointstruct>& cloud);
+
 		/**
 		 * @function init
 		 * @brief    initialize this class so it can function
@@ -109,6 +112,9 @@ namespace pointcloud_utils
 	
 	private:
 		std_msgs::Header header; //Header from most recent pointcloud message
+
+		std::vector<pointcloud_utils::simplePointstruct> last_cartesian_cloud;
+		std::vector<pointcloud_utils::polarPointstruct>  last_polar_cloud;
 
 		geometry_msgs::TransformStamped transform;
 

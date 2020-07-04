@@ -31,7 +31,7 @@ namespace pointcloud_utils
 		float x;
 		float y;
 		float z;
-	} shellPointstruct;
+	} simplePointstruct;
 
 	enum costmapValues
 	{
@@ -39,6 +39,13 @@ namespace pointcloud_utils
 		UNKNOWN = 127,
 		OCCUPIED = 0
 	};
+
+	typedef struct
+	{
+		float azimuth;
+		float range;
+		float z;
+	} polarPointstruct;
 } //end namespace pointcloud_utils
 
 #endif //end ifndef POINTCLOUD_UTILS_HPP

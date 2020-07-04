@@ -25,6 +25,7 @@
 const double DEFAULT_RES = 1; //[m/cell] if const_res is false and conditions are undefined, use 1-1 res
 
 pointcloud_utils::PointCloudGridParser* grid_parser;
+pointcloud_utils::PointCloudGridParser::Settings settings;
 
 std_msgs::Header header; //Header from most recent pointcloud message
 
@@ -46,8 +47,6 @@ std::vector<uint8_t> map_grid_bytes;
 // int new_z_scale_min;
 // int new_z_scale_max;
 bool has_new_params = false;
-
-pointcloud_utils::PointCloudGridParser::Settings settings;
 // --------------------------
 
 
@@ -198,7 +197,7 @@ void pointCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& msg)
 	std::cout << "new cloud received.\n";
 	if (settings.use_shell_pointstruct)
 	{
-		grid_parser->updateCloud<pointcloud_utils::shellPointstruct>(msg, grid_bytes, map_grid_bytes);
+		grid_parser->updateCloud<pointcloud_utils::simplePointstruct>(msg, grid_bytes, map_grid_bytes);
 	} else
 	{
 		grid_parser->updateCloud<pointcloud_utils::pointstruct>(msg, grid_bytes, map_grid_bytes);

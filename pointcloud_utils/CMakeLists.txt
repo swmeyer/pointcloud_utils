@@ -43,8 +43,8 @@ find_package(OpenCV REQUIRED)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 	INCLUDE_DIRS include
-#  LIBRARIES pointcloud_utils
-  CATKIN_DEPENDS roscpp sensor_msgs dynamic_reconfigure
+  LIBRARIES pointcloud_utils
+  CATKIN_DEPENDS roscpp sensor_msgs tf2_msgs tf2_sensor_msgs nav_msgs dynamic_reconfigure
 #  DEPENDS system_lib
 )
 
@@ -58,6 +58,9 @@ include_directories(
   include
   ${catkin_INCLUDE_DIRS}
 )
+
+add_library(pointcloud_utils src/pointcloud_grid_parser.cpp src/pointcloud_saver.cpp)
+target_link_libraries(pointcloud_utils ${catkin_LIBRARIES})
 
 add_executable(pointcloud_saver src/pointcloud_saver_node.cpp src/pointcloud_saver.cpp)
 add_dependencies(pointcloud_saver ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -78,3 +81,16 @@ target_link_libraries(pointcloud_grid_parser ${catkin_LIBRARIES})
 add_executable(pointcloud_to_laserscan src/pointcloud_to_laserscan.cpp)
 add_dependencies(pointcloud_to_laserscan ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS}  ${PROJECT_NAME}_gencfg)
 target_link_libraries(pointcloud_to_laserscan ${catkin_LIBRARIES})
+
+
+#############
+## INSTALL ##
+#############
+
+install (TARGETS pointcloud_utils
+        ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+        LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+        RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
+
+install(DIRECTORY include/${PROJECT_NAME}/
+        DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
