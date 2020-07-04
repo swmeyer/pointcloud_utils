@@ -75,10 +75,6 @@ add_executable(pointcloud_grid_parser src/pointcloud_grid_parser_node.cpp src/po
 add_dependencies(pointcloud_grid_parser ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS}  ${PROJECT_NAME}_gencfg)
 target_link_libraries(pointcloud_grid_parser ${catkin_LIBRARIES})
 
-add_executable(shell_pointcloud_grid_parser src/shell_pointcloud_grid_parser.cpp)
-add_dependencies(shell_pointcloud_grid_parser ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS}  ${PROJECT_NAME}_gencfg)
-target_link_libraries(shell_pointcloud_grid_parser ${catkin_LIBRARIES})
-
 add_executable(pointcloud_to_laserscan src/pointcloud_to_laserscan.cpp)
 add_dependencies(pointcloud_to_laserscan ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS}  ${PROJECT_NAME}_gencfg)
 target_link_libraries(pointcloud_to_laserscan ${catkin_LIBRARIES})
