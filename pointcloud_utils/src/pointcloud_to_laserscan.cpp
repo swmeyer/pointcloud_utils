@@ -48,6 +48,8 @@ float resolution; //[rad] azimuthal increment for laser scan
 int num_pts; //number of increments around a full-circle
 std::string scan_frame;
 ros::Publisher marker_pub; // publisher for visualization
+
+bool visualize_3D; //set to true to visualize the converted 3D point coud, to verify poinstruct parsing
 // --------------------------
 
 /**
@@ -160,7 +162,7 @@ void cloudCallback(const sensor_msgs::PointCloud2::ConstPtr& msg)
 		    //range = std::sqrt(std::pow(pt.x, 2) + std::pow(pt.y, 2));
 			if (range != 0)
 			{
-	 			std::cout << "Point: " << pt.x << ", " << pt.y << ", " << pt.z << "\n";
+	 			std::cout << "\nPoint: " << pt.x << ", " << pt.y << ", " << pt.z << "\n";
 				std::cout << "Range: " << range << " flat range: " << std::sqrt(std::pow(pt.x, 2) + std::pow(pt.y, 2)) << "\n";
 				//Add this point to the laser scan!!
 				//azimuth = atan2(pt.y, pt.x);
@@ -192,7 +194,10 @@ void cloudCallback(const sensor_msgs::PointCloud2::ConstPtr& msg)
 		} 
 	}
 
-	publish_points(cloud, msg->header);
+	if (visualize_3D)
+	{
+		publish_points(cloud, msg->header);
+	}
 	scan_pub.publish(scan);
 }
 
@@ -212,6 +217,7 @@ int main(int argc, char* argv[])
 	n_.param<float>("position_tolerance", position_tolerance, 0.1);
 	n_.param<float>("resolution", resolution, 0.01);
 	n_.param<std::string>("scan_frame", scan_frame, "scan");
+	n_.param<bool>("visualize_3D_scan", visualize_3D, false); //set to true to turn on visualization for verify poinstruct parsing
 
 	//TODO: allow for limited horizonal view
 	num_pts = (2 * PI) / resolution;
