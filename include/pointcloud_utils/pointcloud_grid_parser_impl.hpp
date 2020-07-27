@@ -168,6 +168,7 @@ namespace pointcloud_utils
 		int skip_count = 0;
 		int pass_count = 0;
 		//fill grid --------------------------------------------------------
+		std::cout << "Z min: " << settings.z_min << "\n";
 		for (T pt : cloud)
 		{
 			if (pt.z < settings.z_min || pt.z > settings.z_max ||
@@ -254,6 +255,8 @@ namespace pointcloud_utils
 	template <class T> void PointCloudGridParser::parseGridRayTrace(std::vector<T>& cloud, Eigen::MatrixXf& grid, const bool initialize)
 	{
 		std::cout << "Starting grid parsing with ray trace\n";
+
+		std::cout << "Z min: " << settings.z_min << "\n";
 
 		determineMapParams<T>(cloud, initialize);
 
@@ -372,7 +375,7 @@ namespace pointcloud_utils
 			//std::cout << "i, j , center i, center j: " << i << ", " << j << ", " << map_center_i << ", " << map_center_j << "\n";
 			if (i == map_center_i)
 			{
-				std::cout << "We found a horizontal line to trace!!!\n";
+				//std::cout << "We found a horizontal line to trace!!!\n";
 
 				int start_point, end_point;
 

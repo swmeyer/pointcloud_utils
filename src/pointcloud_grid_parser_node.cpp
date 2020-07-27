@@ -161,7 +161,7 @@ void reconfigureCallback(pointcloud_utils::PointCloudUtilsConfig &config, uint32
 	has_new_params = true;
 
 	std::cout << "Warning: dynamic reconfigure of map size turned off, due to corrupted functionality\n";
-	bool turn_off_resize = true;
+	bool turn_off_resize = false;
 	if (!turn_off_resize)
 	{
 		settings.resolution = config.map_resolution;
