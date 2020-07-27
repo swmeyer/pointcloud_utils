@@ -1,0 +1,74 @@
+<launch>
+    <include file="$(find pointcloud_utils)/launch/lidar_calibration3.launch" />
+    <include file="$(find pointcloud_utils)/launch/lidar_calibration4.launch" />
+
+    <node pkg="pointcloud_utils" type="pointcloud_grid_parser" name="fp_grid_parser_v" required="true">
+        <param name="cloud_topic" 		value="/velodyne_points" />
+        <param name="base_frame"      value="base" />
+        <param name="lidar_frame"     value="velodyne" />
+        <param name="image_pub_topic" 	value="/grid_image/velodyne" />
+        <param name="costmap_pub_topic"	value="/map" />
+
+        <param name="constant_map_resolution" value="true" />
+        <param name="constant_map_size" value="true" />
+        <param name="use_bounds" 		value="true" />
+        <param name="recalculate_dynamic_bounds" value="false" />
+        <param name="use_raytrace_to_clear_space" value="false" />
+
+        <param name="map_resolution" 	value="0.1" /> #m/cell
+        <param name="map_width" 		value="512" /> #cell was 1024
+        <param name="map_height" 		value="512" /> #cell was 1024
+
+        <param name="z_scale_max" 		value="0.2" /> #[m] #was 5
+        <param name="z_scale_min" 		value="-0.9" /> #[m] #was 0
+        <param name="binary_map"      value="true" />
+
+        <param name="centered_x"      value="false" />
+        <param name="centered_y"      value="true" />
+
+        <param name="use_shell_pointstruct" value="false" />
+
+        #bounds        
+      	<param name="x_min" value="10"  /> #was -10
+      	<param name="x_max" value="100"  />
+      	<param name="y_min" value="-100" />
+      	<param name="y_max" value="100"  />
+      	<param name="z_min" value="1" />
+      	<param name="z_max" value="5"  />
+    </node>
+
+    <node pkg="pointcloud_utils" type="pointcloud_grid_parser" name="fp_grid_parser_i" required="true">
+        <param name="cloud_topic"     value="/invz_topic_1" />
+        <param name="base_frame"      value="base" />
+        <param name="lidar_frame"     value="innoviz" />
+        <param name="image_pub_topic"   value="/grid_image/innoviz" />
+        <param name="costmap_pub_topic" value="/map" />
+
+        <param name="constant_map_resolution" value="true" />
+        <param name="constant_map_size" value="true" />
+        <param name="use_bounds"    value="true" />
+        <param name="recalculate_dynamic_bounds" value="false" />
+        <param name="use_raytrace_to_clear_space" value="false" />
+
+        <param name="map_resolution"  value="0.1" /> #m/cell
+        <param name="map_width"     value="512" /> #cell was 1024
+        <param name="map_height"    value="512" /> #cell was 1024
+
+        <param name="z_scale_max"     value="0.2" /> #[m] #was 5
+        <param name="z_scale_min"     value="-0.9" /> #[m] #was 0
+        <param name="binary_map"      value="true" />
+
+        <param name="centered_x"      value="false" />
+        <param name="centered_y"      value="true" />
+
+        <param name="use_shell_pointstruct" value="false" />
+
+        #bounds        
+        <param name="x_min" value="10"  /> #was -10
+        <param name="x_max" value="100"  />
+        <param name="y_min" value="-100" />
+        <param name="y_max" value="100"  />
+        <param name="z_min" value="1" />
+        <param name="z_max" value="5"  />
+    </node>
+</launch>
