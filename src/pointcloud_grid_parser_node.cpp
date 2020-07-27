@@ -210,7 +210,7 @@ void pointCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& msg)
 	std::cout << "Grid updated\n";
 
 	publishImage();
-	publishMap();
+	//publishMap();
 }
 
 //========================================

@@ -148,6 +148,7 @@ namespace pointcloud_utils
 	{
 		std::cout << "Starting grid parsing\n";
 		determineMapParams<T>(cloud, initialize);
+		std::cout << "determined map params\n";
 
 		//reset map -------------------------------------------------
 		if ((initialize && settings.use_first) || (!settings.use_first))
@@ -242,6 +243,7 @@ namespace pointcloud_utils
 			} 		
 		}
 		std::cout << "Out-of-bounds point count: " << skip_count << "\n In-bounds point count: " << pass_count << "\n";
+		std::cout << "Done parsing\n";
 	}
 
 	/** 
@@ -478,6 +480,7 @@ namespace pointcloud_utils
 		last_cartesian_cloud = minimal_cartesian_cloud;
 		last_polar_cloud = minimal_polar_cloud;
 		std::cout << "Out-of-bounds point count: " << skip_count << "\n In-bounds point count: " << pass_count << "\n";
+		std::cout << "done parsing ray trace\n";
 	}
 
 
