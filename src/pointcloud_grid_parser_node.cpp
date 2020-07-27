@@ -184,6 +184,11 @@ void reconfigureCallback(pointcloud_utils::PointCloudUtilsConfig &config, uint32
  */
 void pointCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& msg)
 {
+	header = msg->header;
+	if (header.stamp.toSec() == 0)
+	{
+		header.stamp = ros::Time::now();
+	}
 	// if (has_new_params)
 	// {
 	// 	//map_width = new_map_width;

@@ -2,7 +2,7 @@
     <include file="$(find pointcloud_utils)/launch/lidar_calibration3.launch" />
     <include file="$(find pointcloud_utils)/launch/lidar_calibration4.launch" />
 
-    <node pkg="pointcloud_utils" type="pointcloud_grid_parser" name="fp_grid_parser_v" required="true">
+    <node pkg="pointcloud_utils" type="pointcloud_grid_parser" name="fp_grid_parser_v" required="true" output="screen">
         <param name="cloud_topic" 		value="/velodyne_points" />
         <param name="base_frame"      value="base" />
         <param name="lidar_frame"     value="velodyne" />
@@ -33,8 +33,8 @@
       	<param name="x_max" value="100"  />
       	<param name="y_min" value="-100" />
       	<param name="y_max" value="100"  />
-      	<param name="z_min" value="1" />
-      	<param name="z_max" value="5"  />
+      	<param name="z_min" value="0.4" />
+      	<param name="z_max" value="3"  />
     </node>
 
     <node pkg="pointcloud_utils" type="pointcloud_grid_parser" name="fp_grid_parser_i" required="true">
@@ -68,7 +68,7 @@
         <param name="x_max" value="100"  />
         <param name="y_min" value="-100" />
         <param name="y_max" value="100"  />
-        <param name="z_min" value="1" />
-        <param name="z_max" value="5"  />
+        <param name="z_min" value="0.4" />
+        <param name="z_max" value="3"  />
     </node>
 </launch>

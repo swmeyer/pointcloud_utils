@@ -33,7 +33,7 @@ file_count = 0
 def imageCallback(msg):
 	global bridge
 
-	img = bridge.imgmsg_to_cv2(image_message, desired_encoding='passthrough')
+	img = bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
 	global file_count
 	filepath = os.path.join(os.getcwd(), folder_name)
 	if not os.path.exists(filepath):
@@ -53,16 +53,14 @@ def imageCallback(msg):
 if __name__ == '__main__':
 	rospy.init_node('pc_saver', anonymous=True)
 
-	pointcloud_topic = rospy.get_param('~img_topic', "/img")
+	img_topic = rospy.get_param('~img_topic', "/img")
 	folder_name 	 = rospy.get_param('~folder_name', "images")
 
 	#todo: get save dir here
 
 	#todo: save header, timestamps
-	queue = 1
-	if save_image:
-		queue = 10
+	queue = 10
 		
-	rospy.Subscriber(image_topic, Image, imageCallback, queue_size=queue)
+	rospy.Subscriber(img_topic, Image, imageCallback, queue_size=queue)
 
 	rospy.spin()
