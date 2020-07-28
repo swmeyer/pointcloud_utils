@@ -189,6 +189,8 @@ void pointCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& msg)
 	{
 		header.stamp = ros::Time::now();
 	}
+
+	header.frame_id = base_frame;
 	// if (has_new_params)
 	// {
 	// 	//map_width = new_map_width;
