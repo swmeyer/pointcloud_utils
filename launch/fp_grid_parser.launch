@@ -30,11 +30,11 @@
 
         #bounds        
       	<param name="x_min" value="10"  /> #was -10
-      	<param name="x_max" value="100"  />
+      	<param name="x_max" value="30"  />
       	<param name="y_min" value="-100" />
       	<param name="y_max" value="100"  />
-      	<param name="z_min" value="0.4" />
-      	<param name="z_max" value="3"  />
+      	<param name="z_min" value="-1" />
+      	<param name="z_max" value="0.2"  />
     </node>
 
     <node pkg="pointcloud_utils" type="pointcloud_grid_parser" name="fp_grid_parser_i" required="true">
@@ -46,13 +46,13 @@
 
         <param name="constant_map_resolution" value="true" />
         <param name="constant_map_size" value="true" />
-        <param name="use_bounds"    value="true" />
+        <param name="use_bounds"      value="true" />
         <param name="recalculate_dynamic_bounds" value="false" />
         <param name="use_raytrace_to_clear_space" value="false" />
 
         <param name="map_resolution"  value="0.1" /> #m/cell
-        <param name="map_width"     value="512" /> #cell was 1024
-        <param name="map_height"    value="512" /> #cell was 1024
+        <param name="map_width"       value="512" /> #cell was 1024
+        <param name="map_height"      value="512" /> #cell was 1024
 
         <param name="z_scale_max"     value="0.2" /> #[m] #was 5
         <param name="z_scale_min"     value="-0.9" /> #[m] #was 0
@@ -65,10 +65,10 @@
 
         #bounds        
         <param name="x_min" value="10"  /> #was -10
-        <param name="x_max" value="100"  />
+        <param name="x_max" value="30"  />
         <param name="y_min" value="-100" />
         <param name="y_max" value="100"  />
-        <param name="z_min" value="0.4" />
-        <param name="z_max" value="3"  />
+        <param name="z_min" value="-1" />
+        <param name="z_max" value="0.2"  />
     </node>
 </launch>

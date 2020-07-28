@@ -52,6 +52,8 @@ namespace pointcloud_utils
 			first = false;
 		}
 
+		grid_image.clear();
+		map.clear();
 		grid_image = this->grid_bytes;
 		map = this->map_grid_bytes;
 	}
