@@ -29,12 +29,12 @@
         <param name="use_shell_pointstruct" value="false" />
 
         #bounds        
-      	<param name="x_min" value="10"  /> #was -10
-      	<param name="x_max" value="30"  />
+      	<param name="x_min" value="`0"  /> #was -10
+      	<param name="x_max" value="60"  />
       	<param name="y_min" value="-100" />
       	<param name="y_max" value="100"  />
       	<param name="z_min" value="-1" />
-      	<param name="z_max" value="-0.5"  />
+      	<param name="z_max" value="1"  />
     </node>
 
     <node pkg="pointcloud_utils" type="pointcloud_grid_parser" name="fp_grid_parser_i" required="true">
@@ -65,10 +65,10 @@
 
         #bounds        
         <param name="x_min" value="10"  /> #was -10
-        <param name="x_max" value="30"  />
+        <param name="x_max" value="60"  />
         <param name="y_min" value="-100" />
         <param name="y_max" value="100"  />
         <param name="z_min" value="-1" />
-        <param name="z_max" value="-0.5"  />
+        <param name="z_max" value="1"  />
     </node>
 </launch>
