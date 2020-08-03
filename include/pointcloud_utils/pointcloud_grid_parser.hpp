@@ -74,6 +74,10 @@ namespace pointcloud_utils
 			double y_max;
 			double z_min;
 			double z_max;
+
+			//Intensity bounds:
+			double min_intensity;
+			double max_intensity;
 			
 			double z_scale_max;
 			double z_scale_min; //scaling parameters for converting between data types

@@ -288,6 +288,9 @@ int main(int argc, char* argv[])
     n_.param<double>("z_scale_min", settings.z_scale_min, 10);
     n_.param<bool>("binary_map", settings.make_binary_map, false);
 
+    n_.param<double>("min_intensity",settings.min_intensity, 0);
+    n_.param<double>("max_intensity", settings.max_intensity, 256);
+
     n_.param<bool>("use_shell_pointstruct", settings.use_shell_pointstruct, false);
 
     ros::Subscriber tf_sub = n.subscribe("/tf", 1, &tfCallback);

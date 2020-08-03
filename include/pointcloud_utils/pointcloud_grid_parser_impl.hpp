@@ -8,6 +8,7 @@
 
 // -------------------------------
 #include "pointcloud_utils/pointcloud_grid_parser.hpp"
+#include "pointcloud_utils/pointcloud_utils_impl.hpp"
 // -------------------------------
 
 namespace pointcloud_utils
@@ -174,6 +175,9 @@ namespace pointcloud_utils
 		std::cout << "Z min: " << settings.z_min << "\n";
 		for (T pt : cloud)
 		{
+			float* intensity;
+			intensity = pointcloud_utils::getIntensity(pt);
+
 			if (pt.z < settings.z_min || pt.z > settings.z_max ||
 				pt.x < settings.x_min || pt.x > settings.x_max ||
 				pt.y < settings.y_min || pt.y > settings.y_max)
@@ -182,8 +186,19 @@ namespace pointcloud_utils
 				continue;
 			} else
 			{
+				if (intensity != NULL)
+				{
+					if (*intensity < settings.min_intensity || *intensity > settings.max_intensity)
+					{
+						skip_count++;
+						continue;
+					}
+				}
+
 				pass_count++;
 			}
+
+
 	
 			uint i = 0;
 			uint j = 0;
@@ -288,9 +303,12 @@ namespace pointcloud_utils
 		//fill grid -------------------------------------------------
 		for (T pt : cloud) 
 		{	
+			float* intensity;
+			intensity = pointcloud_utils::getIntensity(pt);
+
 			//TODO: technically, we should place all the black points before ray-tracing...
 
-			if (//pt.z < settings.z_min || pt.z > settings.z_max ||
+			if (pt.z < settings.z_min || pt.z > settings.z_max ||
 				pt.x < settings.x_min || pt.x > settings.x_max ||
 				pt.y < settings.y_min || pt.y > settings.y_max)
 			{
@@ -298,6 +316,15 @@ namespace pointcloud_utils
 				continue;
 			} else
 			{
+				if (intensity != NULL)
+				{
+					if (*intensity < settings.min_intensity || *intensity > settings.max_intensity)
+					{
+						skip_count++;
+						continue;
+					}
+				}
+				
 				pass_count++;
 			}
 	

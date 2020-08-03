@@ -46,6 +46,10 @@ namespace pointcloud_utils
 		float range;
 		float z;
 	} polarPointstruct;
+
+	template  <class T> float* getIntensity(T& data); 
+
+	template<> float* getIntensity<pointstruct>(pointcloud_utils::pointstruct& data);
 } //end namespace pointcloud_utils
 
 #endif //end ifndef POINTCLOUD_UTILS_HPP

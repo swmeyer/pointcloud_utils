@@ -33,6 +33,9 @@
         <param name="centered_x"      value="false" />
         <param name="centered_y"      value="true" />
 
+        <param name="min_intensity"   value="11" />
+        <param name="max_intensity"   value="200" />
+
         <param name="use_shell_pointstruct" value="false" />
 
         #bounds        
@@ -67,6 +70,9 @@
 
         <param name="centered_x"      value="false" />
         <param name="centered_y"      value="true" />
+
+        <param name="min_intensity"   value="13" />
+        <param name="max_intensity"   value="200" />
 
         <param name="use_shell_pointstruct" value="false" />
 
