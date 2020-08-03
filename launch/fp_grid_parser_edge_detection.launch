@@ -2,18 +2,11 @@
     <include file="$(find pointcloud_utils)/launch/lidar_calibration3.launch" />
     <include file="$(find pointcloud_utils)/launch/lidar_calibration4.launch" />
 
-    <arg name="min_x" default="-100" />
-    <arg name="max_x" default="100" />
-    <arg name="min_y" default="-100" />
-    <arg name="max_y" default="100" />
-    <arg name="min_z" default="-10" />
-    <arg name="max_z" default="10" />
-
-    <node pkg="pointcloud_utils" type="pointcloud_grid_parser" name="fp_grid_parser_v" required="true">
+    <node pkg="pointcloud_utils" type="pointcloud_grid_parser" name="fp_grid_parser_ve" required="true">
         <param name="cloud_topic" 		value="/velodyne_points" />
         <param name="base_frame"      value="base" />
         <param name="lidar_frame"     value="velodyne" />
-        <param name="image_pub_topic" 	value="/grid_image/velodyne" />
+        <param name="image_pub_topic" 	value="/grid_image/velodyne_edge" />
         <param name="costmap_pub_topic"	value="/map" />
 
         <param name="constant_map_resolution" value="true" />
@@ -37,18 +30,18 @@
 
         #bounds        
       	<param name="x_min" value="`0"  /> #was -10
-      	<param name="x_max" value="60"  />
-      	<param name="y_min" value="-10" />
-      	<param name="y_max" value="10"  />
-      	<param name="z_min" value="1" />
-      	<param name="z_max" value="4"  />
+      	<param name="x_max" value="100"  />
+      	<param name="y_min" value="-100" />
+      	<param name="y_max" value="100"  />
+      	<param name="z_min" value="-1" />
+      	<param name="z_max" value="1"  />
     </node>
 
-    <node pkg="pointcloud_utils" type="pointcloud_grid_parser" name="fp_grid_parser_i" required="true">
+    <node pkg="pointcloud_utils" type="pointcloud_grid_parser" name="fp_grid_parser_ie" required="true">
         <param name="cloud_topic"     value="/invz_topic_1" />
         <param name="base_frame"      value="base" />
         <param name="lidar_frame"     value="innoviz" />
-        <param name="image_pub_topic"   value="/grid_image/innoviz" />
+        <param name="image_pub_topic"   value="/grid_image/innoviz_edge" />
         <param name="costmap_pub_topic" value="/map" />
 
         <param name="constant_map_resolution" value="true" />
@@ -72,10 +65,10 @@
 
         #bounds        
         <param name="x_min" value="0"  /> #was -10
-        <param name="x_max" value="60"  />
-        <param name="y_min" value="-10" />
-        <param name="y_max" value="10"  />
-        <param name="z_min" value="1" />
-        <param name="z_max" value="1.5"  />
+        <param name="x_max" value="100"  />
+        <param name="y_min" value="-100" />
+        <param name="y_max" value="100"  />
+        <param name="z_min" value="-1" />
+        <param name="z_max" value="1"  />
     </node>
 </launch>
