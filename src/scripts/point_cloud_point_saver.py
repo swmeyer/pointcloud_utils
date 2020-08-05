@@ -20,9 +20,12 @@ file_type = "xyz"
 folder_name = "points"
 file_count = 0
 
+file_list_name = "file_list.txt"
+
 target_frame = "base_link"
 
 tf_found = False
+
 
 #input_path = sys.argv[1]
 #output_path = sys.argv[2]
@@ -37,9 +40,19 @@ def pointcloudCallback(msg):
 	global file_name
 	global file_type
 	global folder_name
-
-	# print(data.header.stamp)
+	global file_list_name
 	global tf_found
+	
+	#if timestamp from header is not zero, use that!
+	timestamp_header = msg.header.stamp.secs * 1000000000 + msg.header.stamp.nsecs
+	if (timestamp_header == 0):
+		time_now = rospy.get_rostime()
+		timestamp = time_now.secs * 1000000000 + time_now.nsecs
+		time_diff = timestamp - timestamp_header
+		print "Timestamp difference: " + str(time_diff) + " ns\n"
+	else:
+		timestamp = timestamp_header
+
 	#find the tf once:
 	if not tf_found:
 		tf_buffer = tf2_ros.Buffer()
@@ -51,13 +64,14 @@ def pointcloudCallback(msg):
     	                                       rospy.get_rostime())
 			tf_found = True
 		except tf2.LookupException as ex:
-			pass
+			print "bad transform!\n"
 			#rospy.logwarn(ex)
 
 		except tf2.ExtrapolationException as ex:
-			pass
+			print "bad transform!\n"
 			#rospy.logwarn(ex)
 	if not tf_found:
+		print "bad transform!\n"
 		return
 
 	#transform to the map frame:
@@ -76,14 +90,10 @@ def pointcloudCallback(msg):
 		print()
 		os.makedirs(filepath)
 	
-	#TODO: if timestamp is not zero, use that!
-	time_now = rospy.get_rostime()
-	timestamp = time_now.secs * 1000000000 + time_now.nsecs
-	
-	#timestamp = msg.header.stamp.secs * 1000000000 + msg.header.stamp.nsecs
-	
 	#filename = os.path.join(filepath, file_name + str(file_count) + "_" + str(timestamp) + "." + file_type)
-	filename = os.path.join(filepath, file_name + "_" + str(timestamp) + "." + file_type)
+	file_name_no_type = file_name + "_" + str(file_count) + "_" + str(timestamp)
+	file_name_extended = file_name_no_type + "." + file_type
+	filename = os.path.join(filepath, file_name_extended)
 	
 	file_count = file_count + 1
 
@@ -93,14 +103,14 @@ def pointcloudCallback(msg):
 	try:
 		file = open(filename, "w")
 	except IOError:
-		print "Could not open file: " + filename + ", aborting."
+		print "Could not open file: " + filename + ", aborting.\n"
 		return
 		
 	#TODO: check file type
 	#todo: check if point cloud has i or not
 
 	with file:
-		file.write("x, y, z, i\n")
+		file.write("x, y, z, i,\n")
 		unpack_from = struct.Struct(fmt).unpack_from
 		for v in xrange(height):
 			offset = row_step * v
@@ -108,18 +118,61 @@ def pointcloudCallback(msg):
 				p = unpack_from(data, offset)
 				offset += point_step
 
-				write_string = str(p[0]) + ", " + str(p[1]) + ", " + str(p[2]) + ", " + str(p[3]) + "\n"
+				write_string = str(p[0]) + ", " + str(p[1]) + ", " + str(p[2]) + ", " + str(p[3]) + ",\n"
 				file.write(write_string)
+
+	try:
+		list_file = open(file_list_name, "a")
+	except IOError:
+		print "Could not open list file: " + file_list_name + ", aborting.\n"
+		return
+
+	with list_file:
+		list_string = str(file_count - 1) + ", " + str(timestamp) + ", " + file_name_no_type + ",\n"
+		list_file.write(list_string)
+
+def initFileList():
+	global folder_name
+	global file_list_name
+	global list_file
+
+	filepath = os.path.join(os.getcwd(), folder_name)
+	if not os.path.exists(filepath):
+		print("making directory")
+		print(filepath)
+		print()
+		os.makedirs(filepath)
+
+	filename = os.path.join(filepath, file_list_name)
+	
+
+	print("saving to: ")
+	print(filename)
+
+	try:
+		file = open(filename, "w")
+	except IOError:
+		print "Could not open file: " + filename + ", aborting."
+		return
+
+	with file:
+		file.write("file_number, time(ns), file_name\n")
+
+	file_list_name = filename
+
 
 def getParams():
 	global target_frame
 	global file_name
 	global file_type
+	global file_list_name
 
 	target_frame     = rospy.get_param('~target_frame', "base_link")
 	folder_name 	 = rospy.get_param('~folder_name', "points")
 	file_type 		 = rospy.get_param('~file_type', "xyz")
 	file_name        = rospy.get_param('~file_name', "points")
+	file_list_name   = rospy.get_param('~file_list_name', "file_list.txt")
+
 
 
 if __name__ == '__main__':
@@ -129,6 +182,8 @@ if __name__ == '__main__':
 	pointcloud_topic = rospy.get_param('~cloud_topic', "/cloud")
 
 	print "Note! All file types are printed as csv files currently"
+
+	initFileList()
 	
 	#todo: save header, timestamps
 	queue = 10

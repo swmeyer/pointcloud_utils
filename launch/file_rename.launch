@@ -1,0 +1,9 @@
+<launch>
+    <node pkg="pointcloud_utils" type="leader_points_rename.py" name="file_rename"
+          required="true" output="screen" cwd="node">
+         <param name="folder_name" value="innoviz" />
+         <param name="file_type"   value="xyz" />
+         <param name="file_name"   value="innoviz_points" />
+         <param name="file_list_name" value="innoviz_file_list.txt" />
+    </node>
+</launch> 

@@ -1,0 +1,28 @@
+<launch>
+
+    <include file="$(find pointcloud_utils)/launch/lidar_calibration3.launch" />
+    <include file="$(find pointcloud_utils)/launch/lidar_calibration4.launch" />
+
+    <include file="$(find pointcloud_utils)/launch/cloud_stamper.launch" />
+
+    <node pkg="pointcloud_utils" type="point_cloud_point_saver.py" name="pc_point_saver_i"
+          required="true" output="screen" cwd="node">
+          <param name="target_frame" value="base" />
+          <param name="file_name"    value="innoviz_points" />
+          <param name="folder_name"  value="points" />
+          <param name="file_type" 	 value="xyz" />
+		  <!-- <param name="cloud_topic"  value="/invz_topic_1" /> -->
+		  <param name="cloud_topic"  value="/innoviz_points" />
+		  <param name="file_list_name" value="innoviz_file_list.txt" />
+    </node>
+
+    <node pkg="pointcloud_utils" type="point_cloud_point_saver.py" name="pc_point_saver_v"
+          required="true" output="screen" cwd="node">
+          <param name="target_frame" value="base" />
+          <param name="file_name"    value="velodyne_points" />
+          <param name="folder_name"  value="points" />
+          <param name="file_type" 	 value="xyz" />
+		  <param name="cloud_topic" 		value="/velodyne_points" />
+		  <param name="file_list_name" value="velodyne_file_list.txt" />
+    </node>
+</launch> 
