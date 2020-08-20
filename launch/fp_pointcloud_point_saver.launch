@@ -6,7 +6,7 @@
     <include file="$(find pointcloud_utils)/launch/cloud_stamper.launch" />
 
     <node pkg="pointcloud_utils" type="point_cloud_point_saver.py" name="pc_point_saver_i"
-          required="true" output="screen" cwd="node">
+          required="true" cwd="node">
           <param name="target_frame" value="base" />
           <param name="file_name"    value="innoviz_points" />
           <param name="folder_name"  value="points" />

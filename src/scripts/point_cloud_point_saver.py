@@ -186,8 +186,8 @@ if __name__ == '__main__':
 	initFileList()
 	
 	#todo: save header, timestamps
-	queue = 10
+	queue = 100
 		
-	rospy.Subscriber(pointcloud_topic, PointCloud2, pointcloudCallback, queue_size=queue)
+	rospy.Subscriber(pointcloud_topic, PointCloud2, pointcloudCallback, queue_size=queue, tcp_nodelay=True)
 
 	rospy.spin()

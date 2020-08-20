@@ -1,11 +1,18 @@
 <launch>
+
+	<arg name="lidar" default="innoviz" />
+
+	<!-- <include file="$(find pointcloud_utils)/launch/cloud_stamper.launch" />-->
     <node pkg="pointcloud_utils" type="points_playback.py" name="points_playback"
           required="true" output="screen" cwd="node">
-         <param name="folder_name" value="innoviz/new" />
+         <param name="folder_name" value="day2_run1_part1_leaders/$(arg lidar)_points_2" />
          <param name="file_type"   value="xyz" />
-         <param name="file_name"   value="innoviz_points" />
-         <param name="file_list_name" value="innoviz_file_list.txt" />
-         <param name="frame" 	   value="base" />
-         <param name="point_topic" value="/leader_points/truth/innoviz" />
+         <param name="file_name"   value="$(arg lidar)_points" />
+         <param name="file_list_name" value="$(arg lidar)_file_list.txt" />
+         <param name="frame" 	   value="$(arg lidar)" />
+         <param name="point_topic" value="/leader_points/truth/$(arg lidar)" />
+         <param name="cloud_sync_topic" value="/$(arg lidar)_points" />
+         <param name="save_to_bagfile" value="false" />
+         <param name="publish_points" value="true" />
     </node>
 </launch> 

@@ -85,6 +85,11 @@
   <build_depend>        dynamic_reconfigure</build_depend>
   <build_export_depend> dynamic_reconfigure</build_export_depend>
   <exec_depend>         dynamic_reconfigure</exec_depend>
+
+
+  <build_depend>        rosbag</build_depend>
+  <build_export_depend> rosbag</build_export_depend>
+  <exec_depend>         rosbag</exec_depend>
   
   <!-- The export tag contains other, unspecified, tags -->
   <export>

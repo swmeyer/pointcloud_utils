@@ -1,9 +1,10 @@
 <launch>
+	<arg name="lidar" default="innoviz" />
     <node pkg="pointcloud_utils" type="leader_points_rename.py" name="file_rename"
           required="true" output="screen" cwd="node">
-         <param name="folder_name" value="innoviz" />
+         <param name="folder_name" value="day2_run1_part1_leaders/$(arg lidar)_points_2/points" />
          <param name="file_type"   value="xyz" />
-         <param name="file_name"   value="innoviz_points" />
-         <param name="file_list_name" value="innoviz_file_list.txt" />
+         <param name="file_name"   value="$(arg lidar)_points" />
+         <param name="file_list_name" value="$(arg lidar)_file_list.txt" />
     </node>
 </launch> 

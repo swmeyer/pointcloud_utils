@@ -35,7 +35,7 @@ def processFile(filename, timestamp):
 	#	print "Could not open file: " + filename + ", aborting.\n"
 	#	return
 #
-	#print "Processing file " + filename + "\n"
+	print "Processing file " + filename + "\n"
 #
 	#with file:
 	#	pass #todo: copy file contents
@@ -49,12 +49,13 @@ def processFile(filename, timestamp):
 		return
 
 	#generate new file path
-	new_filepath = os.path.join(filepath, "new")
-	if not os.path.exists(new_filepath):
-		print("making directory")
-		print(new_filepath)
-		print()
-		os.makedirs(new_filepath)
+	#new_filepath = os.path.join(filepath, "new")
+	#if not os.path.exists(new_filepath):
+	#	print("making directory")
+	#	print(new_filepath)
+	#	print()
+	#	os.makedirs(new_filepath)
+	new_filepath = filepath
 
 	file_name_extended = file_name + "_" + str(file_count) + "_" + str(timestamp) + "_leader." + file_type
 	new_filename = os.path.join(new_filepath, file_name_extended)
@@ -82,11 +83,13 @@ def processDirectory():
 	print "Scanning directory \"" + filepath + "\" for files\n"
 
 	entries = os.listdir(filepath)
+	print "Found " + str(len(entries)) + " files in directory\n"
 	for entry in entries:
-		#print "Found file " + entry + "\n"
+		print "Found file " + entry + "\n"
 		tokens = entry.split("_")
 
 		if (len(tokens) < 4):
+			print "bad filename: " + entry + "\n"
 			continue
 
 		timestamp = tokens[3].split(".")[0]
@@ -118,7 +121,7 @@ def importFileList(file_list_name):
 		for line in lines:
 			if (skip):
 				skip = False
-				continue
+				#continue
 
 			tokens = line.split(",")
 			count = tokens[0]

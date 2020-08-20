@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   cv_bridge
   dynamic_reconfigure
+  rosbag
 )
 
 generate_dynamic_reconfigure_options(
@@ -81,6 +82,10 @@ target_link_libraries(pointcloud_grid_parser ${catkin_LIBRARIES})
 add_executable(pointcloud_to_laserscan src/pointcloud_to_laserscan.cpp)
 add_dependencies(pointcloud_to_laserscan ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS}  ${PROJECT_NAME}_gencfg)
 target_link_libraries(pointcloud_to_laserscan ${catkin_LIBRARIES})
+
+add_executable(bag_parser src/bag_parser.cpp)
+add_dependencies(bag_parser ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS}  ${PROJECT_NAME}_gencfg)
+target_link_libraries(bag_parser ${catkin_LIBRARIES})
 
 
 #############

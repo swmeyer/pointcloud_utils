@@ -1,4 +1,7 @@
 <launch>
+
+	<include file="$(find pointcloud_utils)/launch/cloud_stamper.launch" />
+	
     <node pkg="pointcloud_utils" type="point_cloud_point_saver.py" name="pc_point_saver"
           required="true" output="screen" cwd="node">
           <param name="target_frame" value="base" />
