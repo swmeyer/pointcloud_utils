@@ -34,6 +34,24 @@ void PointCloudSaver::setIntputTopic(std::string topic)
 }
 
 /**
+ * @Function 	setCurrentCloud
+ * @Brief 		Manually sets the next cloud to process into the saver, and
+ * 				initiates the processing on this new cloud
+ * @Param		cloud - the point cloud to process
+ * @Return      void
+ */
+void PointCloudSaver::setCurrentCloud(const sensor_msgs::PointCloud2::ConstPtr& cloud)
+{
+	//memcpy into a struct (parses the data into the struct values)
+	std::vector<pointstruct> cloud2;
+	cloud2.resize(cloud->width);
+	std::memcpy(&(cloud2[0]), &(cloud->data[0]), cloud->row_step);
+
+	//call save to file
+	savePointsToFile(cloud2);
+}
+
+/**
  * @Function 	pointCloudCallback
  * @Param 		msg - incoming data message
  * @Return 		void

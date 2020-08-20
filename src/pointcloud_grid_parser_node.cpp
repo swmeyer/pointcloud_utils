@@ -9,6 +9,10 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/image_encodings.h>
+
+#include <rosbag/bag.h>
+#include <rosbag/view.h>
+
 #include <Eigen/Dense>
 
 #include <dynamic_reconfigure/server.h>
@@ -264,6 +268,12 @@ int main(int argc, char* argv[])
 	n_.param<std::string>("lidar_frame", lidar_frame, "cloud");
 	n_.param<std::string>("image_pub_topic", image_pub_topic, "/grid_image");
 	n_.param<std::string>("costmap_pub_topic", costmap_pub_topic, "/map");
+	
+	bool from_bag;
+	std::string bagfile_name;
+	n_.param<bool>("parse_from_bag", from_bag, false);
+	n_.param<std::string>("bagfile", bagfile_name, "points.bag");
+
 	n_.param<double>("map_resolution", settings.resolution, 0.5);
 	n_.param<int>("map_width", settings.map_width, 512);
 	n_.param<int>("map_height", settings.map_height, 512);
@@ -326,9 +336,64 @@ int main(int argc, char* argv[])
 	//subscribe/advertise
 	map_pub = n.advertise<nav_msgs::OccupancyGrid>(costmap_pub_topic, 1);
 	image_pub = n.advertise<sensor_msgs::Image>(image_pub_topic, 1);
-	ros::Subscriber cloud_sub = n.subscribe(lidar_topic, 1, &pointCloudCallback);
+	
+	if (from_bag)
+	{
+		rosbag::Bag bag;
+		//std::string bagstring = "/home/stephanie/Documents/data/fp_bags_truckcomputer/day_2/day2_run1_part2_restamp.bag";
+    	std::cout << "Opening bag: " << bagfile_name  << "\n";
+	
+    	bag.open(bagfile_name);  // BagMode is Read by default
+    	
+    	for(rosbag::MessageInstance const m: rosbag::View(bag, rosbag::TopicQuery(lidar_topic)))
+    	{
+    	  sensor_msgs::PointCloud2::ConstPtr i = m.instantiate<sensor_msgs::PointCloud2>();
+    	  if (i != nullptr)
+    	  {
+    	    if (!ros::ok())
+    	    {
+    	        break;
+    	    }
+    	    
+    	    header = i->header;
+			if (header.stamp.toSec() == 0)
+			{
+				header.stamp = ros::Time::now();
+			}
+		
+			header.frame_id = base_frame;
+			// if (has_new_params)
+			// {
+			// 	//map_width = new_map_width;
+			// 	//map_height = new_map_height;
+			// 	resolution = new_resolution;
+			// 	z_scale_min = new_z_scale_min;
+			// 	z_scale_max = new_z_scale_max;
+			// 	has_new_params = false;
+			// 	first = true;
+			// }
+			std::cout << "new cloud from file.\n";
+			if (settings.use_shell_pointstruct)
+			{
+				grid_parser->updateCloud<pointcloud_utils::simplePointstruct>(i, grid_bytes, map_grid_bytes);
+			} else
+			{
+				grid_parser->updateCloud<pointcloud_utils::pointstruct>(i, grid_bytes, map_grid_bytes);
+			}
+			std::cout << "Grid updated\n";
+		
+			publishImage();
+			//publishMap();
+    	  }
+    	}
 
-	ros::spin();
+    	bag.close();
+	} else
+	{
+		ros::Subscriber cloud_sub = n.subscribe(lidar_topic, 1, &pointCloudCallback);
+
+		ros::spin();
+	}
 
 	delete(grid_parser);
 

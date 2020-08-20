@@ -6,6 +6,10 @@
 // --------------------------
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
+
+#include <rosbag/bag.h>
+#include <rosbag/view.h>
+
 #include "pointcloud_utils/pointcloud_saver.hpp"
 // --------------------------
 
@@ -16,8 +20,8 @@ int main(int argc, char* argv[])
 	ros::NodeHandle n;
 
 	//Get params
-	std::string topic;
-	n_.param<std::string>("cloud_topic", topic, "/cloud");
+	std::string lidar_topic;
+	n_.param<std::string>("cloud_topic", lidar_topic, "/cloud");
 
 	std::string filename;
 	n_.param<std::string>("filename_base", filename, "points");
@@ -25,9 +29,40 @@ int main(int argc, char* argv[])
 	std::string filetype;
 	n_.param<std::string>("file_extension", filetype, ".csv");
 
+	bool from_bag;
+	n_.param<bool>("parse_from_bag", from_bag, false);
+	std::string bagfile_name;
+	n_.param<std::string>("bagfile", bagfile_name, "points.bag");
+
+
 
 	//Make pointcloud svaver object
-	PointCloudSaver pc_saver(topic, filename, filetype, n);
+	PointCloudSaver pc_saver(lidar_topic, filename, filetype, n);
+
+	if (from_bag)
+	{
+    	rosbag::Bag bag;
+		//std::string bagstring = "/home/stephanie/Documents/data/fp_bags_truckcomputer/day_2/day2_run1_part2_restamp.bag";
+    	std::cout << "Opening bag: " << bagfile_name  << "\n";
+	
+    	bag.open(bagfile_name);  // BagMode is Read by default
+    	
+    	for(rosbag::MessageInstance const m: rosbag::View(bag, rosbag::TopicQuery(lidar_topic)))
+    	{
+    	  sensor_msgs::PointCloud2::ConstPtr i = m.instantiate<sensor_msgs::PointCloud2>();
+    	  if (i != nullptr)
+    	  {
+    	    if (!ros::ok())
+    	    {
+    	        break;
+    	    }
+    	    
+    	    pc_saver.setCurrentCloud(i);
+    	  }
+    	}
+
+    	bag.close();
+    }
 
 	ros::spin();
 	return(0);

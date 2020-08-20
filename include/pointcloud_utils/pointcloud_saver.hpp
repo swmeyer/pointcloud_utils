@@ -28,6 +28,15 @@ public:
 	 */
 	void setIntputTopic(std::string topic);
 
+	/**
+	 * @Function 	setCurrentCloud
+	 * @Brief 		Manually sets the next cloud to process into the saver, and
+	 * 				initiates the processing on this new cloud
+	 * @Param		cloud - the point cloud to process
+	 * @Return      void
+	 */
+	void setCurrentCloud(const sensor_msgs::PointCloud2::ConstPtr& cloud);
+
 private:
 	std::string     input_topic;		//topic for the cloud to save
 	ros::NodeHandle n; 					//node handle for subscription

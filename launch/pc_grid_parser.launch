@@ -8,6 +8,9 @@
         <param name="image_pub_topic" 	value="/grid_image" />
         <param name="costmap_pub_topic"	value="/map" />
 
+        <param name="parse_from_bag" value="true" />
+        <param name="bagfile" value="/home/stephanie/Documents/data/fp_bags_truckcomputer/day_2/day2_run1_part1_restamp.bag" />
+
         <param name="constant_map_resolution" value="true" />
         <param name="constant_map_size" value="true" />
         <param name="use_bounds" 		value="true" />
