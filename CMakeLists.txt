@@ -60,30 +60,30 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_library(pointcloud_utils src/pointcloud_grid_parser.cpp src/pointcloud_saver.cpp)
+add_library(pointcloud_utils src/conversion/pointcloud_grid_parser.cpp src/io/pointcloud_saver.cpp)
 target_link_libraries(pointcloud_utils ${catkin_LIBRARIES})
 
-add_executable(pointcloud_saver src/pointcloud_saver_node.cpp src/pointcloud_saver.cpp)
+add_executable(pointcloud_saver src/io/pointcloud_saver_node.cpp src/io/pointcloud_saver.cpp)
 add_dependencies(pointcloud_saver ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(pointcloud_saver ${catkin_LIBRARIES})
 
-add_executable(distance_marker_publisher src/distance_marker_publisher.cpp)
+add_executable(distance_marker_publisher src/oddball/distance_marker_publisher.cpp)
 add_dependencies(distance_marker_publisher ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(distance_marker_publisher ${catkin_LIBRARIES})
 
-add_executable(ground_bounce_counter src/ground_error_detector.cpp)
+add_executable(ground_bounce_counter src/oddball/ground_error_detector.cpp)
 add_dependencies(ground_bounce_counter ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(ground_bounce_counter ${catkin_LIBRARIES})
 
-add_executable(pointcloud_grid_parser src/pointcloud_grid_parser_node.cpp src/pointcloud_grid_parser.cpp)
+add_executable(pointcloud_grid_parser src/conversion/pointcloud_grid_parser_node.cpp src/conversion/pointcloud_grid_parser.cpp)
 add_dependencies(pointcloud_grid_parser ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS}  ${PROJECT_NAME}_gencfg)
 target_link_libraries(pointcloud_grid_parser ${catkin_LIBRARIES})
 
-add_executable(pointcloud_to_laserscan src/pointcloud_to_laserscan.cpp)
+add_executable(pointcloud_to_laserscan src/conversion/pointcloud_to_laserscan.cpp)
 add_dependencies(pointcloud_to_laserscan ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS}  ${PROJECT_NAME}_gencfg)
 target_link_libraries(pointcloud_to_laserscan ${catkin_LIBRARIES})
 
-add_executable(bag_parser src/bag_parser.cpp)
+add_executable(bag_parser src/io/bag_parser.cpp)
 add_dependencies(bag_parser ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS}  ${PROJECT_NAME}_gencfg)
 target_link_libraries(bag_parser ${catkin_LIBRARIES})
 

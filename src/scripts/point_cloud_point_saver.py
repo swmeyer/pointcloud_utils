@@ -110,7 +110,19 @@ def pointcloudCallback(msg):
 	#todo: check if point cloud has i or not
 
 	with file:
-		file.write("x, y, z, i,\n")
+		if (file_type == 'xyz'):
+			file.write("x, y, z, i,\n")
+		else if (file_type == 'ply'):
+			file.write("ply\n")
+			file.write("format ascii 1.0")
+			num_points = msg.height * msg.width
+			element_string = "element vertex " + str(num_points)
+			file.write(element_string)
+			file.write("property float x")
+			file.write("property float y")
+			file.write("property float z")
+			file.write("property float i")
+
 		unpack_from = struct.Struct(fmt).unpack_from
 		for v in xrange(height):
 			offset = row_step * v
@@ -119,6 +131,10 @@ def pointcloudCallback(msg):
 				offset += point_step
 
 				write_string = str(p[0]) + ", " + str(p[1]) + ", " + str(p[2]) + ", " + str(p[3]) + ",\n"
+				
+				if (file_type == "ply"):
+					write_string = str(p[0]) + " " + str(p[1]) + " " + str(p[2] + " " + str(p[3])) + " \n"
+
 				file.write(write_string)
 
 	try:

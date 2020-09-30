@@ -22,7 +22,7 @@ std::string file_list_name = "points/innoviz_file_list.txt";
 void saveToFile(std::vector<pointcloud_utils::pointstruct>& cloud)
 {
     std::string filename_base = "points/innoviz_points";
-    std::string file_extension = ".xyz";
+    std::string file_extension = ".ply";
 
     //prepare filename
     std::stringstream sstream;
@@ -48,6 +48,24 @@ void saveToFile(std::vector<pointcloud_utils::pointstruct>& cloud)
                      << pt.y << ","
                      << pt.z << ","
                      << pt.intensity << ",\n";
+            }
+        } else if (file_extension == ".ply")
+        {
+            file << "ply\n";
+            file << "format ascii 1.0\n";
+            file << "element vertex " << cloud.size() << "\n"; //TODO: test to make sure this is inputted as a number
+            file << "property float x\n";
+            file << "property float y\n";
+            file << "property float z\n";
+            //file << "property float i\n";
+            file << "end_header\n";
+
+            for (pointcloud_utils::pointstruct pt : cloud)
+            {
+                file << pt.x << " " 
+                     << pt.y << " "
+                     << pt.z << " \n";
+                     //<< pt.intensity << " \n";
             }
         } else
         {
@@ -75,7 +93,7 @@ int main(int argc, char* argv[])
     ros::NodeHandle n_("~");
     rosbag::Bag bag;
 
-    std::string bagstring = "/home/stephanie/Documents/data/fp_bags_truckcomputer/day_2/day2_run1_part2_restamp.bag";
+    std::string bagstring = "/home/stephanie/Documents/data/fp_bags_truckcomputer/day_2/day2_run1_part1_restamp.bag";
     std::cout << "Opening bag: " << bagstring << "\n";
 
     bag.open(bagstring);  // BagMode is Read by default
