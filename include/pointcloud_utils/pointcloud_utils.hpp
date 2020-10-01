@@ -7,7 +7,8 @@
 #define POINTCLOUD_UTILS_HPP
 
 // -------------------------------
-
+#include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/PointField.h>
 // -------------------------------
 
 namespace pointcloud_utils
@@ -28,6 +29,16 @@ namespace pointcloud_utils
 		float dummy4;
 
 	} pointstruct; //old forestry trucks file velodyne format
+
+	//std::vector<sensor_msgs::PointField> pointstruct_fields =
+	//{
+	//	{ "x", 0, sensor_msgs::PointField::FLOAT32, 1},
+	//	{ "y", 4, sensor_msgs::PointField::FLOAT32, 1},
+	//	{ "z", 8, sensor_msgs::PointField::FLOAT32, 1},
+	//	{ "intensity", 16, sensor_msgs::PointField::FLOAT32, 1}
+	//};
+//
+	//int pointstruct_step_size = 32; //TODO: does this work for every one?
 
 	typedef struct
 	{
@@ -57,9 +68,14 @@ namespace pointcloud_utils
 		float z;
 	} polarPointstruct;
 
-	template  <class T> float* getIntensity(T& data); 
-
-	template<> float* getIntensity<pointstruct>(pointcloud_utils::pointstruct& data);
+	/**
+	 * @function getIntensity
+	 * @brief    retrieves the intensity of the given point, if it exists
+	 * @param    data - point that may have an intensity value
+	 * @return 	 float* - pointer to intensity value, if it exists for the given point. Otherwise, will return NULL
+	 */
+	template <class T> inline const float* getIntensity(const T& data); 
+	template<> inline const float* getIntensity<pointstruct>(const pointcloud_utils::pointstruct& data);
 
 	/**
 	 * @function inTolerance
@@ -70,9 +86,29 @@ namespace pointcloud_utils
 	 * @return 	 bool - true if data1 and data2 are within tolerance of each other
 	 * 				  - false otherwise 
 	 */
-	bool inTolerance(float data1, float data2, float tolerance);
+	inline bool inTolerance(const float data1, const float data2, const float tolerance);
 
+	// //TODO: finish making conversion functions for to- and from- pointstruct vectors and pointcloud2 messages
+	// /** 
+	//  * @function 	convertToPointCloud2
+	//  * @brief 		convert the given point vector into a pointcloud 2 message
+	//  * @param 		cloud - pointstruct vector to convert
+	//  * @param 		msg - pointcloud2 message to save conversion into
+	//  * @return 		void
+	//  */
+	// template <class T> void convertToPointCloud2(const std::vector<T>& cloud, sensor_msgs::PointCloud2& msg);
+	// template<> void convertToPointCloud2<pointsruct>(const std::vector<pointcloud_utils::pointstruct>& cloud, sensor_msgs::PointCloud2& msg);
+	
 
+	/** 
+	 * @function 	convertFromPointCloud2
+	 * @brief 		convert the given pointcloud2 message into a point vector
+	 * @param 		cloud - pointcloud2 message to convert
+	 * @param 		point_vector - pointstruct vector to save conversion into
+	 * @return 		void
+	 */
+	template <class T> inline void convertFromPointCloud2(const sensor_msgs::PointCloud2::ConstPtr& cloud, std::vector<T>& point_vector);
+	
 } //end namespace pointcloud_utils
 
 #endif //end ifndef POINTCLOUD_UTILS_HPP

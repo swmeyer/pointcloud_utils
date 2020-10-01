@@ -175,7 +175,7 @@ namespace pointcloud_utils
 		std::cout << "Z min: " << settings.z_min << "\n";
 		for (T pt : cloud)
 		{
-			float* intensity;
+			const float* intensity;
 			intensity = pointcloud_utils::getIntensity(pt);
 
 			if (pt.z < settings.z_min || pt.z > settings.z_max ||
@@ -303,7 +303,7 @@ namespace pointcloud_utils
 		//fill grid -------------------------------------------------
 		for (T pt : cloud) 
 		{	
-			float* intensity;
+			const float* intensity;
 			intensity = pointcloud_utils::getIntensity(pt);
 
 			//TODO: technically, we should place all the black points before ray-tracing...

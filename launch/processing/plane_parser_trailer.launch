@@ -1,0 +1,37 @@
+<launch>
+    <node pkg="pointsensor_positional_processing" type="plane_parsing_node" name="suspension_parser"
+          required="true" output="screen" cwd="node">
+         <param name="cloud_topic_in" 	value="/invz_topic_1" />
+         <param name="cloud_topic_out" 	value="/filtered_points" />
+         <param name="visualization_topic" value="/markers" />
+
+         <param name="print_plane_states" value="true" />
+         <param name="use_point_track_method" value="false" />
+
+         <param name="plane_direction" value="x" />
+
+         <param name="plane_x_min" value="5.5" />
+         <param name="plane_x_max" value="6.5" />
+         <param name="plane_y_min" value="0.5" />
+         <param name="plane_y_max" value="0.7" />
+         <param name="plane_z_min" value="0.6" />
+         <param name="plane_z_max" value="0.8" />
+
+         #ground
+        <!-- <param name="plane_x_min" value="3.0" />
+         <param name="plane_x_max" value="4.0" />
+         <param name="plane_y_min" value="0.1" />
+         <param name="plane_y_max" value="0.4" />
+         <param name="plane_z_min" value="-10" />
+         <param name="plane_z_max" value="10" /> -->
+
+         #x plane
+         <!-- <param name="plane_x_min" value="5.5" />
+         <param name="plane_x_max" value="6.5" />
+         <param name="plane_y_min" value="0.5" />
+         <param name="plane_y_max" value="0.7" />
+         <param name="plane_z_min" value="0.6" />
+         <param name="plane_z_max" value="0.8" /> -->
+
+    </node>
+</launch> 
