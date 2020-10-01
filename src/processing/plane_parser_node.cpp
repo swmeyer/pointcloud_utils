@@ -79,7 +79,7 @@ pointcloud_utils::PlaneParser* plane_parser;
 void visualizePlane(const Eigen::Vector3f& plane_coefficients, const int id, const pointcloud_utils::PlaneParser::pointValueIndex solve_for, 
 					const float min_1, const float max_1, const float min_2, const float max_2)
 {
-	// std::cout << "Visualizing plane!\n";
+	//std::cout << "Visualizing plane!\n";
 	//std::cout << "Solving for: " << solve_for << "\n";
 	visualization_msgs::MarkerArray markers;
 	visualization_msgs::Marker marker;
@@ -357,6 +357,9 @@ int main(int argc, char* argv[])
 	n_.param<bool>("visualize_plane", visualize_plane, true);
 	n_.param<bool>("track_plane_states_over_time", continue_from_last_plane, false);
 
+	n_.param<int>("min_points_to_fit", settings.min_points_to_fit, 20);
+    n_.param<bool>("report_offsets_at_origin", settings.report_offsets_at_origin, false);
+    
 	plane_parser = new pointcloud_utils::PlaneParser(settings);
 
 	// n_.param<int>("intensity_min", intensity_min, 20);

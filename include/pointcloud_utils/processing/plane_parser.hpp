@@ -33,6 +33,10 @@ namespace pointcloud_utils
 			bool use_point_track_method; //if true, uses selected individual points on the plane to do plane fit 
 										 // and translation tracking. NOTE: tracking individual points is highly subject to noise 
 										 // without frame-to-frame filtering. NOTE: this is not yet implemented
+		
+			int min_points_to_fit; 	//any fewer poiints, and we won't try to do a plane fit
+    		bool report_offsets_at_origin; // if true, will give distance from origin to plane in each direction. Otherwise, will report distance vector normal to plane to origin
+
 		};
 
 		struct States

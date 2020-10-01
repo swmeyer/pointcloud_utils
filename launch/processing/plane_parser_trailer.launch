@@ -10,16 +10,19 @@
          <param name="visualize_plane" value="true" />
          <param name="track_plane_states_over_time" value="true" />
 
-         <param name="iterate_plane_fit" value="false" />
-         <param name="max_plane_fit_iterations" value="10" />
-         <param name="outlier_point_tolerance" value="0.1" />
+         <param name="iterate_plane_fit" value="true" />
+         <param name="max_plane_fit_iterations" value="15" />
+         <param name="outlier_point_tolerance" value="0.05" />
+
+         <param name="min_points_to_fit" value="10" />
+         <param name="report_offsets_at_origin" value="false" /> #the alternative is to report plane distance vector at origin
 
          <param name="plane_direction" value="z" />
 
         <param name="plane_x_min" value="3.0" />
          <param name="plane_x_max" value="4.0" />
-         <param name="plane_y_min" value="0.1" />
-         <param name="plane_y_max" value="0.4" />
+         <param name="plane_y_min" value="-0.2" />
+         <param name="plane_y_max" value="0.2" />
          <param name="plane_z_min" value="-10" />
          <param name="plane_z_max" value="10" />
 

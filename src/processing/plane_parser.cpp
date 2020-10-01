@@ -175,6 +175,7 @@ namespace pointcloud_utils
 				{
 					plane_coefficients = fitPlane(plane_points);
 					outliers_removed = removeOutliers(plane_points, plane_coefficients);
+					plane_fit_iterations++;
 				}
 			}
 		} else
@@ -193,9 +194,9 @@ namespace pointcloud_utils
 	Eigen::Vector3f PlaneParser::fitPlane(const std::vector<pointcloud_utils::pointstruct>& cloud)
 	{
 		//std::cout << "Fitting plane to " << cloud.size() << " points\n";
-		if (!cloud.size())
+		if (cloud.size() < settings.min_points_to_fit)
 		{
-			std::cout << "Not enough points to fit plane";
+			std::cout << "Not enough points to fit plane\n";
 			Eigen::Vector3f empty;
 			return empty;
 		}
@@ -329,12 +330,34 @@ namespace pointcloud_utils
 
 			//Get translation at sensor origin!!
 			pointcloud_utils::pointstruct origin_pt; //NOTE: this is designed to work best for a nearly horizontal plane
-			//origin_pt.z = -(1 - plane_coefficients[0] * -center_x - plane_coefficients[1] * -center_y) / plane_coefficients[2];
-			//origin_pt.x = -(1 - plane_coefficients[1] * -center_y - plane_coefficients[2] * origin_pt.z) / plane_coefficients[0];
-			//origin_pt.y = -(1 - plane_coefficients[0] * -center_x - plane_coefficients[2] * origin_pt.z) / plane_coefficients[1];
-			origin_pt.x = 1 / plane_coefficients[0];
-			origin_pt.y = 1 / plane_coefficients[1];
-			origin_pt.z = 1 / plane_coefficients[2];
+			
+			if (settings.report_offsets_at_origin)
+			{
+				//Offsets to plane at origin:
+				origin_pt.x = 1 / plane_coefficients[0];
+				origin_pt.y = 1 / plane_coefficients[1];
+				origin_pt.z = 1 / plane_coefficients[2];
+			} else
+			{
+				//Distance to plane from origin: https://mathinsight.org/distance_point_plane
+				float normal_magnitude = std::sqrt(std::pow(plane_coefficients[0], 2) + std::pow(plane_coefficients[1], 2) + std::pow(plane_coefficients[2], 2) );
+				float distance = 1 / normal_magnitude;
+				//This distance is in the direction of the planar normal vector, [a, b, c]:
+				// sqrt(x2 + y2 + z2) = distance
+				// m [ a, b c] = [x, y, z]
+				// distance = sqrt(ma2 + mb2 + mc2) = sqrt(m) * (norm of normal)
+				// distance/norm_of_normal = sqrt(m)
+				// m = (distance/norm_of_normal)^2
+		
+				float scale = std::pow((distance / normal_magnitude), 2);
+		
+				//std::cout << "Scale: " << scale << "\n";
+		
+				origin_pt.x = scale * plane_coefficients[0];
+				origin_pt.y = scale * plane_coefficients[1];
+				origin_pt.z = scale * plane_coefficients[2];
+			}
+
 
 			//if (std::isinf(origin_pt.x)) origin_pt.x = 0;
 			//if (std::isinf(origin_pt.y)) origin_pt.y = 0;
