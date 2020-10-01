@@ -6,7 +6,7 @@
 //TODO: remove grid?, remove has_new_params?
 
 // --------------------------
-#include "pointcloud_utils/pointcloud_grid_parser.hpp"
+#include "pointcloud_utils/conversion/pointcloud_grid_parser.hpp"
 // --------------------------
 
 // --------------------------

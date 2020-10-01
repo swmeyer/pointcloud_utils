@@ -60,7 +60,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_library(pointcloud_utils src/conversion/pointcloud_grid_parser.cpp src/io/pointcloud_saver.cpp)
+add_library(pointcloud_utils src/conversion/pointcloud_grid_parser.cpp src/io/pointcloud_saver.cpp src/conversion/pointcloud_to_laserscan.cpp)
 target_link_libraries(pointcloud_utils ${catkin_LIBRARIES})
 
 add_executable(pointcloud_saver src/io/pointcloud_saver_node.cpp src/io/pointcloud_saver.cpp)
@@ -79,7 +79,7 @@ add_executable(pointcloud_grid_parser src/conversion/pointcloud_grid_parser_node
 add_dependencies(pointcloud_grid_parser ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS}  ${PROJECT_NAME}_gencfg)
 target_link_libraries(pointcloud_grid_parser ${catkin_LIBRARIES})
 
-add_executable(pointcloud_to_laserscan src/conversion/pointcloud_to_laserscan.cpp)
+add_executable(pointcloud_to_laserscan src/conversion/pointcloud_to_laserscan.cpp src/conversion/pointcloud_to_laserscan_node.cpp)
 add_dependencies(pointcloud_to_laserscan ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS}  ${PROJECT_NAME}_gencfg)
 target_link_libraries(pointcloud_to_laserscan ${catkin_LIBRARIES})
 

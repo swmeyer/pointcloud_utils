@@ -7,7 +7,7 @@
 #define POINTCLOUD_GRID_PARSER_IMPL_HPP
 
 // -------------------------------
-#include "pointcloud_utils/pointcloud_grid_parser.hpp"
+#include "pointcloud_utils/conversion/pointcloud_grid_parser.hpp"
 #include "pointcloud_utils/pointcloud_utils_impl.hpp"
 // -------------------------------
 
@@ -441,7 +441,7 @@ namespace pointcloud_utils
 
 							pointcloud_utils::polarPointstruct min_polar;
 							min_polar.azimuth = std::atan2(m, n); //rad
-							min_polar.range = std::sqrt(std::pow(m, 2) + std::pow(n, 2));
+							min_polar.radius = std::sqrt(std::pow(m, 2) + std::pow(n, 2));
 							min_polar.z = min_cart.z;
 							minimal_polar_cloud.push_back(min_polar);
 
@@ -495,7 +495,7 @@ namespace pointcloud_utils
 
 							pointcloud_utils::polarPointstruct min_polar;
 							min_polar.azimuth = std::atan2(m, n); //rad
-							min_polar.range = std::sqrt(std::pow(m, 2) + std::pow(n, 2));
+							min_polar.radius = std::sqrt(std::pow(m, 2) + std::pow(n, 2));
 							min_polar.z = min_cart.z;
 							minimal_polar_cloud.push_back(min_polar);
 

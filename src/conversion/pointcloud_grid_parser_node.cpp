@@ -22,8 +22,8 @@
 #include <tf2_msgs/TFMessage.h>
 #include <geometry_msgs/TransformStamped.h>
 
-#include "pointcloud_utils/pointcloud_grid_parser.hpp"
-#include "pointcloud_utils/pointcloud_grid_parser_impl.hpp"
+#include "pointcloud_utils/conversion/pointcloud_grid_parser.hpp"
+#include "pointcloud_utils/conversion/pointcloud_grid_parser_impl.hpp"
 // --------------------------
 
 const double DEFAULT_RES = 1; //[m/cell] if const_res is false and conditions are undefined, use 1-1 res

@@ -10,7 +10,7 @@
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
 
-#include "pointcloud_utils/pointcloud_saver.hpp"
+#include "pointcloud_utils/io/pointcloud_saver.hpp"
 // --------------------------
 
 int main(int argc, char* argv[])

@@ -4,7 +4,7 @@
 */
 
 // --------------------------
-#include "pointcloud_utils/pointcloud_saver.hpp"
+#include "pointcloud_utils/io/pointcloud_saver.hpp"
 // --------------------------
 
 PointCloudSaver::PointCloudSaver(std::string topic, std::string filename, std::string file_extension, ros::NodeHandle& n):
