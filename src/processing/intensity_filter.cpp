@@ -43,7 +43,7 @@ namespace pointcloud_utils
 		// convert to point vector
 		//cloud.resize(cloud_in->width);
 		//std::memcpy(&(cloud[0]), &(cloud_in->data[0]), cloud_in->row_step);
-		pointcloud_utils::convertFromPointCloud2(cloud_in, cloud); //TODO: test
+		pointcloud_utils::convertFromPointCloud2(cloud_in, cloud);
 
 		std::vector<pointcloud_utils::pointstruct> cloud_parsed;
 

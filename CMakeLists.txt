@@ -65,7 +65,9 @@ add_library(pointcloud_utils
   src/conversion/pointcloud_grid_parser.cpp 
   src/io/pointcloud_saver.cpp 
   src/conversion/pointcloud_to_laserscan.cpp
-  src/processing/intensity_filter.cpp)
+  src/processing/intensity_filter.cpp
+  src/processing/plane_parser.cpp )
+
 target_link_libraries(pointcloud_utils ${catkin_LIBRARIES})
 
 add_executable(pointcloud_grid_parser src/conversion/pointcloud_grid_parser_node.cpp src/conversion/pointcloud_grid_parser.cpp)
@@ -98,6 +100,10 @@ target_link_libraries(ground_bounce_counter ${catkin_LIBRARIES})
 add_executable(intensity_filter src/processing/intensity_filter_node.cpp src/processing/intensity_filter.cpp)
 add_dependencies(intensity_filter ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(intensity_filter ${catkin_LIBRARIES})
+
+add_executable(plane_parser src/processing/plane_parser_node.cpp src/processing/plane_parser.cpp)
+add_dependencies(plane_parser ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(plane_parser ${catkin_LIBRARIES})
 
 
 
