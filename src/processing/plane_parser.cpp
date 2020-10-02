@@ -96,6 +96,25 @@ namespace pointcloud_utils
 		memcpy(&(filtered_cloud.data[0]), &(cloud_parsed[0]), filtered_cloud.row_step);
 	}
 
+	//TODO: make a templated version which requires the specification of a pointstruct type
+	/**
+	 * @function 	pointIsOnPlane
+	 * @brief 		checks if the given point is on the given plane or not, using the given tolerance
+	 * @param 		pt - point to check
+	 * @param 		plane_parameters - description of plane to check on
+	 * @param 		tolerance - threshold for distance from plane
+	 * @return 		bool - true if the point is on the plane, 
+	 * 				       false otherwise
+	 */
+	bool PlaneParser::pointIsOnPlane(const pointcloud_utils::pointstruct& pt, const PlaneParser::PlaneParameters& plane_parameters, const float& tolerance)
+	{
+		//Distance to plane from origin: https://mathinsight.org/distance_point_plane
+		float normal_magnitude = std::sqrt(std::pow(plane_parameters.a_d, 2) + std::pow(plane_parameters.b_d, 2) + std::pow(plane_parameters.c_d, 2) );
+		float distance = (plane_parameters.a_d * pt.x + plane_parameters.b_d * pt.y + plane_parameters.c_d * pt.z - 1 )/ normal_magnitude;
+		
+		return(pointcloud_utils::inTolerance(distance, 0, tolerance));
+	}
+
 	/**
 	 * @Function 	findPlane
 	 * @Param 		cloud - point cloud to parse
@@ -190,6 +209,7 @@ namespace pointcloud_utils
 	 * @Return 		Eigen::Vector3f - vector of plane coefficients, a/d, b/d, c/d
 	 * @Brief 		Fits a plane equation (a/d * x + b/d * y + c/d * z = 1) to the given point cloud
 	 * //TODO: what happens when my plane has d = 0?? (intersects the origin) - I guess the coefficients will approach infinity
+	 * //TODO: look into using robust regression to support outlier tolerance, and brainstorm other techniques for increasing plaraity of underlying points for each fit
 	 */
 	Eigen::Vector3f PlaneParser::fitPlane(const std::vector<pointcloud_utils::pointstruct>& cloud)
 	{
@@ -245,33 +265,44 @@ namespace pointcloud_utils
 		int outlier_count = 0;
 		for (pointcloud_utils::pointstruct pt : saved_points)
 		{
-			//Solve for pt.x distance to plane:
-			// a/d x + b/d y + c/d z = 1 -> x = (1 - b/d y - c/d z) / (a/d)
-			float x_plane = (1 - plane_coefficients[1] * pt.y - plane_coefficients[2] * pt.z) / plane_coefficients[0];
-			if (!pointcloud_utils::inTolerance(x_plane, pt.x, settings.outlier_tolerance))
+			////Solve for pt.x distance to plane:
+			//// a/d x + b/d y + c/d z = 1 -> x = (1 - b/d y - c/d z) / (a/d)
+			//float x_plane = (1 - plane_coefficients[1] * pt.y - plane_coefficients[2] * pt.z) / plane_coefficients[0];
+			//if (!pointcloud_utils::inTolerance(x_plane, pt.x, settings.outlier_tolerance))
+			//{
+			//	outlier_count++;
+			//	continue; //Skip point
+			//}
+//
+			////Solve for pt.y distance to plane:
+			//float y_plane = (1 - plane_coefficients[0] * pt.x - plane_coefficients[2] * pt.z) / plane_coefficients[1];
+			//if (!pointcloud_utils::inTolerance(y_plane, pt.y, settings.outlier_tolerance))
+			//{
+			//	outlier_count++;
+			//	continue; //Skip point
+			//}
+//
+			////Solve for pt.z distance to plane:
+			//float z_plane = (1 - plane_coefficients[0] * pt.x - plane_coefficients[1] * pt.y) / plane_coefficients[2];
+			//if (!pointcloud_utils::inTolerance(z_plane, pt.z, settings.outlier_tolerance))
+			//{
+			//	outlier_count++;
+			//	continue; //Skip point
+			//}
+
+			PlaneParser::PlaneParameters params;
+			params.a_d = plane_coefficients[0];
+			params.b_d = plane_coefficients[1];
+			params.c_d = plane_coefficients[2];
+
+
+			if (pointIsOnPlane(pt, params, settings.outlier_tolerance))
+			{
+				plane_points.push_back(pt);
+			} else
 			{
 				outlier_count++;
-				continue; //Skip point
 			}
-
-			//Solve for pt.y distance to plane:
-			float y_plane = (1 - plane_coefficients[0] * pt.x - plane_coefficients[2] * pt.z) / plane_coefficients[1];
-			if (!pointcloud_utils::inTolerance(y_plane, pt.y, settings.outlier_tolerance))
-			{
-				outlier_count++;
-				continue; //Skip point
-			}
-
-			//Solve for pt.z distance to plane:
-			float z_plane = (1 - plane_coefficients[0] * pt.x - plane_coefficients[1] * pt.y) / plane_coefficients[2];
-			if (!pointcloud_utils::inTolerance(z_plane, pt.z, settings.outlier_tolerance))
-			{
-				outlier_count++;
-				continue; //Skip point
-			}
-
-
-			plane_points.push_back(pt);
 
 		}
 
@@ -511,99 +542,9 @@ namespace pointcloud_utils
 			//1, 1 -> z = -2000 (must have really large value to drive the other two parameters to their values)
 			//this means that, at 1,1, the plane has height of -2000! this isn't a shallow horizontal plane at all, but rather a vertical one
 		//]
-		//std::cout << "Getting plane orientation.\n";	
-		// double ad = plane_coefficients[0];
-		// double bd = plane_coefficients[1];
-		// double cd = plane_coefficients[2];
-	// 
-		// double a, b, c, d; 
-// 
-		// //std::cout << "Plane coefficients: " << ad << ", " << bd << ", " << cd << "\n";
-	// 
-		// float x1, x2, x3;
-		// float y1, y2, y3;
-		// float z1, z2, z3;
-		// switch (solve_for)
-		// {
-		// 	case (pointValueIndex::X):
-		// 	{
-		// 		//b/d y + c/d z -1 = -a/d x --> x = -(b/d * d/a) y - (c/d * d/a)z + d/a
-		// 		
-		// 		float b_prime = -(plane_coefficients[1] * (1/plane_coefficients[0]));
-		// 		float c_prime = -(plane_coefficients[2] * (1/plane_coefficients[0]));
-		// 		float d_prime = (1/plane_coefficients[0]);
-	// 
-		// 		y1 = min_1;
-		// 		z1 = min_2;
-		// 		x1 = b_prime * y1 + c_prime * z1 + d_prime;
-		// 	
-		// 		y2 = min_1;
-		// 		z2 = max_2;
-		// 		x2 = b_prime * y2 + c_prime * z2 + d_prime;
-		// 	
-		// 		y3 = max_1;
-		// 		z3 = max_2;
-		// 		x3 = b_prime * y3 + c_prime * z3 + d_prime;
-	// 
-		// 		break;
-		// 	}
-		// 	case (pointValueIndex::Y):
-		// 	{
-		// 		//a/d x + c/d z -1 = -b/d y --> y = -(a/d * d/b) y - (c/d * d/b)z + d/b
-		// 		float a_prime = -(plane_coefficients[0] * (1/plane_coefficients[1]));
-		// 		float c_prime = -(plane_coefficients[2] * (1/plane_coefficients[1]));
-		// 		float d_prime = (1/plane_coefficients[1]);
-		// 		
-		// 		x1 = min_1;
-		// 		z1 = min_2;
-		// 		y1 = a_prime * x1 + c_prime * z1 + d_prime;
-		// 	
-		// 		x2 = min_1;
-		// 		z2 = max_2;
-		// 		y2 = a_prime * x2 + c_prime * z2 + d_prime;
-		// 	
-		// 		x3 = max_1;
-		// 		z3 = max_2;
-		// 		y3 = a_prime * x3 + c_prime * z3 + d_prime;
-		// 	
-		// 		break;
-		// 	}
-		// 	case (pointValueIndex::Z):
-		// 	{
-		// 		//a/d x + b/d y -1 = -c/d z --> z = -(a/d * d/c) y - (b/d * d/c)y + d/c
-		// 		float a_prime = -(plane_coefficients[0] * (1/plane_coefficients[2]));
-		// 		float b_prime = -(plane_coefficients[1] * (1/plane_coefficients[2]));
-		// 		float d_prime = (1/plane_coefficients[2]);
-	// 
-		// 		x1 = min_1;
-		// 		y1 = min_2;
-		// 		z1 = a_prime * x1 + b_prime * y1 + d_prime;
-		// 	
-		// 		x2 = min_1;
-		// 		y2 = max_2;
-		// 		z2 = a_prime * x2 + b_prime * y2 + d_prime;
-		// 	
-		// 		x3 = max_1;
-		// 		y3 = max_2;
-		// 		z3 = a_prime * x3 + b_prime * y3 + d_prime;
-		// 	
-		// 		break;
-		// 	}
-		// 	default:
-		// 	{
-		// 		//TODO: what do do here? should never happen
-		// 	}
-		// }
-	// 
-		// Eigen::Vector3f pt1(x1, y1, z1);
-		// Eigen::Vector3f pt2(x2, y2, z2);
-		// Eigen::Vector3f pt3(x3, y3, z3);
-	// 
-		// Eigen::Vector3f v1 = pt1 - pt2;
-		// Eigen::Vector3f v2 = pt3 - pt2;
-	
-		// Eigen::Vector3f normal = v1.cross(v2);
+		
 
+		//Note: for some reason, this seems to give angles that are 90', or pi/2 from truth (at least for a horizontal plane!)
 
 		Eigen::Vector3f normal = plane_coefficients;//todo: validate
 		//Normalize the normal vector:
@@ -613,9 +554,9 @@ namespace pointcloud_utils
 		normal[2] = normal[2]/norm;
 	
 		//World Roll, Pitch, Yaw:
-		roll = std::atan2(normal[2], normal[1]);  //angle about world x axis, 0 at y axis (horizontal)
-		pitch = std::atan2(normal[2], normal[0]); //angle about world y axis, 0 at x axis (horizontal)
-		yaw = std::atan2(normal[1], normal[0]);   //angle about world z axis, 0 at x axis (forward)
+		roll = std::atan2(normal[2], normal[1])	+ pointcloud_utils::PI / 2; //angle about world x axis, 0 at y axis (horizontal)
+		pitch = std::atan2(normal[2], normal[0])+ pointcloud_utils::PI / 2; //angle about world y axis, 0 at x axis (horizontal)
+		yaw = std::atan2(normal[1], normal[0])	+ pointcloud_utils::PI / 2; //angle about world z axis, 0 at x axis (forward)
 	}
 
 } //end namespace pointcloud_utilss

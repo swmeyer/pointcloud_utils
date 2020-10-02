@@ -62,11 +62,12 @@ include_directories(
 
 #conversion
 add_library(pointcloud_utils 
-  src/conversion/pointcloud_grid_parser.cpp 
   src/io/pointcloud_saver.cpp 
+  src/conversion/pointcloud_grid_parser.cpp 
   src/conversion/pointcloud_to_laserscan.cpp
   src/processing/intensity_filter.cpp
-  src/processing/plane_parser.cpp )
+  src/processing/plane_parser.cpp 
+  src/processing/ground_processor.cpp )
 
 target_link_libraries(pointcloud_utils ${catkin_LIBRARIES})
 
@@ -104,6 +105,10 @@ target_link_libraries(intensity_filter ${catkin_LIBRARIES})
 add_executable(plane_parser src/processing/plane_parser_node.cpp src/processing/plane_parser.cpp)
 add_dependencies(plane_parser ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(plane_parser ${catkin_LIBRARIES})
+
+add_executable(ground_processor src/processing/ground_removal_and_alignment_node.cpp src/processing/ground_processor.cpp src/processing/plane_parser.cpp)
+add_dependencies(ground_processor ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(ground_processor ${catkin_LIBRARIES})
 
 
 

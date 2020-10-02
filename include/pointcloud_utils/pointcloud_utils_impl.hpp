@@ -84,6 +84,28 @@ namespace pointcloud_utils
 			std::cout << "Error: Cannot complete conversion. Is the poinstruct type correct for your cloud?\n";
 		}
 	}
+
+	/** 
+	 * @function 	convertFromPointCloud2
+	 * @brief 		convert the given pointcloud2 message into a point vector
+	 * @param 		cloud - pointcloud2 message to convert
+	 * @param 		point_vector - pointstruct vector to save conversion into
+	 * @return 		void
+	 */
+	template <class T> inline void convertFromPointCloud2(const sensor_msgs::PointCloud2& cloud, std::vector<T>& point_vector)
+	{
+		//memcpy into a struct (parses the data into the struct values)
+		//here, we assume the user knows what they are doing, and print out a statement if it fails
+		try
+		{
+			point_vector.resize(cloud.width);
+			memcpy(&(point_vector[0]), &(cloud.data[0]), cloud.row_step);
+		} catch (...)
+		{
+			std::cout << "Error: Cannot complete conversion. Is the poinstruct type correct for your cloud?\n";
+		}
+	}
+	
 	//template<> void convertFromPointCloud2<pointsruct>(const sensor_msgs::PointCloud2::ConstPtr& cloud, std::vector<pointcloud_utils::pointstruct>& point_vector)
 	//{
 	//	point_vector.resize(cloud->width);

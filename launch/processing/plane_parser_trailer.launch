@@ -1,5 +1,5 @@
 <launch>
-    <node pkg="pointcloud_utils" type="plane_parser" name="suspension_parser"
+    <node pkg="pointcloud_utils" type="plane_parser" name="plane_parser"
           required="true" output="screen" cwd="node">
          <param name="cloud_topic_in" 	value="/invz_topic_1" />
          <param name="cloud_topic_out" 	value="/filtered_points" />

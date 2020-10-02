@@ -36,7 +36,6 @@ namespace pointcloud_utils
 		
 			int min_points_to_fit; 	//any fewer poiints, and we won't try to do a plane fit
     		bool report_offsets_at_origin; // if true, will give distance from origin to plane in each direction. Otherwise, will report distance vector normal to plane to origin
-
 		};
 
 		struct States
@@ -109,6 +108,39 @@ namespace pointcloud_utils
 			PlaneParser::SearchWindow& search_window,
 			bool continue_from_last_plane
 		);
+		//TODO: make a templated version which requires the specification of a pointstruct type
+		/**
+		 * @function 	parsePlane
+		 * @brief 		finds the plane-fit of the given cloud, using the given window bounds
+		 * @param 		cloud - inputted 3D cloud
+		 * @param 		plane_points  - space to store the filtered plane points
+		 * @param 		plane_parameters - coefficients of the fitted plane equation
+		 * @param 		plane_states - values representing planar position and orientation
+		 * @param 		search_window - window within which to process points for this plane
+		 * @param 		continue_from_last_plane - if true, updates tracked states using this plane fit
+		 * @return 		void
+		 */
+		void parsePlane
+		(
+			std::vector<pointcloud_utils::pointstruct>& cloud, 
+			sensor_msgs::PointCloud2& filtered_cloud,
+			PlaneParser::PlaneParameters& plane_parameters,
+			PlaneParser::States& plane_states,
+			PlaneParser::SearchWindow& search_window,
+			bool continue_from_last_plane
+		);
+
+		//TODO: make a templated version which requires the specification of a pointstruct type
+		/**
+		 * @function 	pointIsOnPlane
+		 * @brief 		checks if the given point is on the given plane or not, using the given tolerance
+		 * @param 		pt - point to check
+		 * @param 		plane_parameters - description of plane to check on
+		 * @param 		tolerance - threshold for distance from plane
+		 * @return 		bool - true if the point is on the plane, 
+		 * 				       false otherwise
+		 */
+		bool pointIsOnPlane(const pointcloud_utils::pointstruct& pt, const PlaneParser::PlaneParameters& plane_parameters, const float& tolerance);
 		
 	private:
 		// --------------------------

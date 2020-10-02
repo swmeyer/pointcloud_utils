@@ -108,6 +108,14 @@ namespace pointcloud_utils
 	 * @return 		void
 	 */
 	template <class T> inline void convertFromPointCloud2(const sensor_msgs::PointCloud2::ConstPtr& cloud, std::vector<T>& point_vector);
+	/** 
+	 * @function 	convertFromPointCloud2
+	 * @brief 		convert the given pointcloud2 message into a point vector
+	 * @param 		cloud - pointcloud2 message to convert
+	 * @param 		point_vector - pointstruct vector to save conversion into
+	 * @return 		void
+	 */
+	template <class T> inline void convertFromPointCloud2(const sensor_msgs::PointCloud2& cloud, std::vector<T>& point_vector);
 	
 } //end namespace pointcloud_utils
 
