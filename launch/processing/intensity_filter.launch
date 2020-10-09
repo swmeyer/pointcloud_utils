@@ -1,9 +1,10 @@
 <launch>
     <node pkg="pointcloud_utils" type="intensity_filter" name="intensity_filter"
           required="true" output="screen" cwd="node">
-         <param name="cloud_topic_in" value="/invz_topic_1" />
+         <!-- <param name="cloud_topic_in" value="/invz_topic_1" /> -->
+         <param name="cloud_topic_in" value="/velodyne_points" />
          <param name="cloud_topic_out" value="/filtered_points" />
-         <param name="intensity_min" value="40" />
-         <param name="intensity_max" value="50" />
+         <param name="intensity_min" value="10" />
+         <param name="intensity_max" value="256" />
     </node>
 </launch> 

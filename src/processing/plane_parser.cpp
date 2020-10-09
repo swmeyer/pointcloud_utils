@@ -45,8 +45,10 @@ namespace pointcloud_utils
 		sensor_msgs::PointCloud2& filtered_cloud,
 		PlaneParser::PlaneParameters& plane_parameters,
 		PlaneParser::States& plane_states,
-		PlaneParser::SearchWindow& search_window,
-		bool continue_from_last_plane
+		pointcloud_utils::SearchWindow& search_window,
+		bool continue_from_last_plane, 
+		const float intensity_min,
+		const float intensity_max
 	)
 	{
 		if (continue_from_last_plane)
@@ -65,7 +67,7 @@ namespace pointcloud_utils
 		//plane parsing!
 		std::vector<pointcloud_utils::pointstruct> cloud_parsed;
 		Eigen::Vector3f plane_coefficients;
-		findPlane( cloud, cloud_parsed, search_window, plane_coefficients, plane_states);
+		findPlane( cloud, cloud_parsed, search_window, plane_coefficients, plane_states, intensity_min, intensity_max);
 
 		if (plane_coefficients.size() != 3)
 		{
@@ -123,6 +125,8 @@ namespace pointcloud_utils
 	 * @param 		continue_from_last_plane - if true, updates tracked states using this plane fit
 	 * @param 		plane_coefficients - coefficients of the fitted plane equation
 	 * @param 		plane_states - values representing planar position and orientation
+	 * @param 		intensity_min - minimum intensity to accept into plane (default 0)
+	 * @param 		intensity_max - maximum intensity to accept into plane (default 256)
 	 * @Return 		void
 	 * @Brief 		Parses the given cloud for the given window of points and saves the found planar states
 	 */
@@ -130,9 +134,11 @@ namespace pointcloud_utils
 	(
 		std::vector<pointcloud_utils::pointstruct>& cloud, 
 		std::vector<pointcloud_utils::pointstruct>& plane_points, 
-		const PlaneParser::SearchWindow& search_window,
+		const pointcloud_utils::SearchWindow& search_window,
 		Eigen::Vector3f& plane_coefficients,
-		PlaneParser::States& plane_states
+		PlaneParser::States& plane_states,
+		const float intensity_min,
+		const float intensity_max
 	)
 	{
 		//Find points of interest
@@ -167,7 +173,8 @@ namespace pointcloud_utils
 			{
 				if (pt.x <= search_window.x_max && pt.x >= search_window.x_min &&
 					pt.y <= search_window.y_max && pt.y >= search_window.y_min &&
-					pt.z <= search_window.z_max && pt.z >= search_window.z_min)
+					pt.z <= search_window.z_max && pt.z >= search_window.z_min &&
+					pt.intensity <= intensity_max && pt.intensity >= intensity_min)
 				{
 					plane_points.push_back(pt);
 				}
@@ -322,7 +329,7 @@ namespace pointcloud_utils
 	(
 		const Eigen::Vector3f& plane_coefficients,
 		PlaneParser::States& plane_states,
-		const PlaneParser::SearchWindow& search_window,
+		const pointcloud_utils::SearchWindow& search_window,
 		bool continue_from_last_plane
 	)
 	{

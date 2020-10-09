@@ -17,6 +17,8 @@
 #include <pointcloud_utils/pointcloud_utils.hpp>
 // --------------------------
 
+//TODO: save max/min points along plane edges
+
 namespace pointcloud_utils
 {
 	class PlaneParser
@@ -63,16 +65,6 @@ namespace pointcloud_utils
 			float c_d;
 		};
 
-		struct SearchWindow //defines the bounds within which to process points
-		{
-			double x_min;
-			double x_max;
-			double y_min;
-			double y_max;
-			double z_min;
-			double z_max;
-		};
-
 		enum pointValueIndex //used to specify which direction we expect this plane to be in
 		{
 			X = 0,
@@ -96,6 +88,8 @@ namespace pointcloud_utils
 		 * @param 		plane_states - values representing planar position and orientation
 		 * @param 		search_window - window within which to process points for this plane
 		 * @param 		continue_from_last_plane - if true, updates tracked states using this plane fit
+		 * @param 		intensity_min - minimum intensity to accept into plane (default 0)
+		 * @param 		intensity_max - maximum intensity to accept into plane (default 256)
 		 * @return 		void
 		 */
 		void parsePlane
@@ -105,30 +99,33 @@ namespace pointcloud_utils
 			sensor_msgs::PointCloud2& filtered_cloud,
 			PlaneParser::PlaneParameters& plane_parameters,
 			PlaneParser::States& plane_states,
-			PlaneParser::SearchWindow& search_window,
-			bool continue_from_last_plane
+			pointcloud_utils::SearchWindow& search_window,
+			bool continue_from_last_plane,
+			const float intensity_min = 0,
+			const float intentisty_max = 256
 		);
-		//TODO: make a templated version which requires the specification of a pointstruct type
-		/**
-		 * @function 	parsePlane
-		 * @brief 		finds the plane-fit of the given cloud, using the given window bounds
-		 * @param 		cloud - inputted 3D cloud
-		 * @param 		plane_points  - space to store the filtered plane points
-		 * @param 		plane_parameters - coefficients of the fitted plane equation
-		 * @param 		plane_states - values representing planar position and orientation
-		 * @param 		search_window - window within which to process points for this plane
-		 * @param 		continue_from_last_plane - if true, updates tracked states using this plane fit
-		 * @return 		void
-		 */
-		void parsePlane
-		(
-			std::vector<pointcloud_utils::pointstruct>& cloud, 
-			sensor_msgs::PointCloud2& filtered_cloud,
-			PlaneParser::PlaneParameters& plane_parameters,
-			PlaneParser::States& plane_states,
-			PlaneParser::SearchWindow& search_window,
-			bool continue_from_last_plane
-		);
+		
+		// //TODO: make a templated version which requires the specification of a pointstruct type
+		// /**
+		//  * @function 	parsePlane
+		//  * @brief 		finds the plane-fit of the given cloud, using the given window bounds
+		//  * @param 		cloud - inputted 3D cloud
+		//  * @param 		plane_points  - space to store the filtered plane points
+		//  * @param 		plane_parameters - coefficients of the fitted plane equation
+		//  * @param 		plane_states - values representing planar position and orientation
+		//  * @param 		search_window - window within which to process points for this plane
+		//  * @param 		continue_from_last_plane - if true, updates tracked states using this plane fit
+		//  * @return 		void
+		//  */
+		// void parsePlane
+		// (
+		// 	std::vector<pointcloud_utils::pointstruct>& cloud, 
+		// 	sensor_msgs::PointCloud2& filtered_cloud,
+		// 	PlaneParser::PlaneParameters& plane_parameters,
+		// 	PlaneParser::States& plane_states,
+		// 	pointcloud_utils::SearchWindow& search_window,
+		// 	bool continue_from_last_plane
+		// );
 
 		//TODO: make a templated version which requires the specification of a pointstruct type
 		/**
@@ -161,6 +158,8 @@ namespace pointcloud_utils
 		 * @param 		plane_coefficients - coefficients of the fitted plane equation
 		 * @param 		plane_states - values representing planar position and orientation
 		 * @Return 		void
+		 * @param 		intensity_min - minimum intensity to accept into plane (default 0)
+		 * @param 		intensity_max - maximum intensity to accept into plane (default 256)
 		 * @Brief 		Parses the given cloud for the given window of points and saves the found planar states
 		 * //TODO: iterate the planeFit to isolate the plane from outlier points
 		 */
@@ -168,15 +167,19 @@ namespace pointcloud_utils
 		(
 			std::vector<pointcloud_utils::pointstruct>& cloud, 
 			std::vector<pointcloud_utils::pointstruct>& plane_points, 
-			const PlaneParser::SearchWindow& search_window,
+			const pointcloud_utils::SearchWindow& search_window,
 			Eigen::Vector3f& plane_coefficients,
-			PlaneParser::States& plane_states
+			PlaneParser::States& plane_states,
+			const float intensity_min,
+			const float intensity_max
 		);
 
 		/**
 		 * @Function 	fitPlane
 		 * @Param 		cloud - points to fit a plane to
 		 * @Return 		Eigen::Vector3f - vector of plane coefficients, a/d, b/d, c/d
+		 * @param 		intensity_min - minimum intensity to accept into plane (default 0)
+		 * @param 		intensity_max - maximum intensity to accept into plane (default 256)
 		 * @Brief 		Fits a plane equation (a/d * x + b/d * y + c/d * z = 1) to the given point cloud
 		 */
 		Eigen::Vector3f fitPlane(const std::vector<pointcloud_utils::pointstruct>& cloud);
@@ -203,7 +206,7 @@ namespace pointcloud_utils
 		(
 			const Eigen::Vector3f& plane_coefficients,
 			PlaneParser::States& plane_states,
-			const PlaneParser::SearchWindow& search_window,
+			const pointcloud_utils::SearchWindow& search_window,
 			bool continue_from_last_plane
 		);
 

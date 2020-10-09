@@ -27,7 +27,7 @@ namespace pointcloud_utils
 		struct Settings
 		{
 			PlaneParser::Settings plane_parser_settings; //setings for the plane parser instance
-			PlaneParser::SearchWindow plane_search_window; //search window for the plane fit
+			pointcloud_utils::SearchWindow plane_search_window; //search window for the plane fit
 			std::string aligned_cloud_frame; //name of frame to report ground-aligned scans in
 			
 			float point_to_plane_tolerance; //[m] maximum acceptable distance for a point to be away from the plane and still be considerd planar

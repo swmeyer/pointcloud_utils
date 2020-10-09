@@ -47,12 +47,6 @@ namespace pointcloud_utils
 		float z;
 	} simplePointstruct;
 
-	enum costmapValues
-	{
-		FREE = 255,
-		UNKNOWN = 127,
-		OCCUPIED = 0
-	};
 
 	typedef struct
 	{
@@ -67,6 +61,23 @@ namespace pointcloud_utils
 		float radius;
 		float z;
 	} polarPointstruct;
+
+	enum costmapValues
+	{
+		FREE = 255,
+		UNKNOWN = 127,
+		OCCUPIED = 0
+	};
+
+	struct SearchWindow //defines the bounds within which to process points
+	{
+		double x_min;
+		double x_max;
+		double y_min;
+		double y_max;
+		double z_min;
+		double z_max;
+	};
 
 	/**
 	 * @function getIntensity

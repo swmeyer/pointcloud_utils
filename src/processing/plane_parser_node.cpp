@@ -34,7 +34,7 @@ uint32_t point_step;
 
 
 pointcloud_utils::PlaneParser::Settings settings;
-pointcloud_utils::PlaneParser::SearchWindow search_window;
+pointcloud_utils::SearchWindow search_window;
 pointcloud_utils::PlaneParser* plane_parser;
 // --------------------------
 
