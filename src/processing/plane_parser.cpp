@@ -588,6 +588,7 @@ namespace pointcloud_utils
 	
 		//World Roll, Pitch, Yaw: 
 // The axis of reference for each angle is treated as convention and must be known (this treats a horizontal plane as the default)
+// Note: these are the angles of plane lines which intersect the world frame cardinal planes. They do not represent euler roll, pitch, yaw angles - one of the angles is entirely explained by the other two? We can choose which one to ignore (I usually choose yaw)??
 		roll  = - std::atan2(normal[1]/ normal[2]); //angle of plane normal about world x axis, 0 at z axis (horizontal)
 		pitch = std::atan2(normal[0]/ normal[2]); //angle of plane normal about world y axis, 0 at z axis (horizontal)
 		yaw   = - std::atan2(normal[1]/ normal[0]); //angle about world z axis, 0 at x axis (forward)
