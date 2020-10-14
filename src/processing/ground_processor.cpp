@@ -105,6 +105,7 @@ namespace pointcloud_utils
 		//Save local copies
 		PlaneParser::States local_plane_states = this->plane_states;
 
+		std::cout << "Roll, pitch: " << local_plane_states.roll << ", " << local_plane_states.pitch << "\n";
 		float roll = local_plane_states.roll;
 		float pitch = local_plane_states.pitch;
 
@@ -289,7 +290,7 @@ namespace pointcloud_utils
 
 		//std::cout << "Detecting ground! points: " << cloud_in->width << "\n";
 
-		plane_parser->parsePlane( cloud_in, cloud, parsed_cloud, plane_parameters, plane_states, settings.plane_search_window, continue_from_last_plane);
+		plane_parser->parsePlane( cloud_in, cloud, parsed_cloud, plane_parameters, plane_states, settings.plane_search_window, continue_from_last_plane, settings.intensity_min, settings.intensity_max);
 		
 		//std::cout << "Detected " << parsed_cloud.width << " plane points!\n";
 		//std::cout << "Plane coefficients: " << plane_parameters.a_d << ", " << plane_parameters.b_d << ", " << plane_parameters.c_d << "\n";

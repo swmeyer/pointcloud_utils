@@ -28,5 +28,7 @@
       	   <param name="y_min" value="-51" />
       	   <param name="z_max" value="1000" />
       	   <param name="z_min" value="-1000"   /> -->
+
+                  <param name="use_intensity" value="false" />
       	 </node>
 </launch>

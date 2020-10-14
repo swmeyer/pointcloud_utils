@@ -55,7 +55,7 @@ namespace pointcloud_utils
 		{
 			if (first)
 			{
-				first = false;
+				//first = false;
 				last_state_time = this_state_time;
 			}
 			this_state_time = cloud_in->header.stamp.toSec();
@@ -63,6 +63,11 @@ namespace pointcloud_utils
 
 		// convert to point vector
 		pointcloud_utils::convertFromPointCloud2(cloud_in, cloud);
+
+		if (settings.do_transform)
+		{
+			pointcloud_utils::transformCloud(cloud, settings.transform);
+		}
 
 		//plane parsing!
 		std::vector<pointcloud_utils::pointstruct> cloud_parsed;
@@ -83,6 +88,14 @@ namespace pointcloud_utils
 
 		getPlaneStates( plane_coefficients, plane_states, search_window, continue_from_last_plane);
 
+		if (continue_from_last_plane)
+		{
+			if (first)
+			{
+				first = false;
+				//Initialize filter:
+			}
+		}
 		//convert back to pointcloud message:
 		filtered_cloud.header = cloud_in->header;
 		filtered_cloud.fields = cloud_in->fields;
@@ -90,7 +103,11 @@ namespace pointcloud_utils
 		filtered_cloud.height = 1;
 		filtered_cloud.width = cloud_parsed.size();
 		filtered_cloud.row_step = filtered_cloud.point_step * cloud_parsed.size();
-		
+			
+		if (settings.do_transform)
+		{
+			filtered_cloud.header.frame_id = settings.transform_frame;
+		}
 		//std::cout << "Plane Coefficients: " << plane_parameters.a_d << ", so on\n";
 		//std::cout << "Plane states: " << plane_states.x << ", so on\n";
 
@@ -206,7 +223,7 @@ namespace pointcloud_utils
 			}
 		} else
 		{
-
+			//TODO: point track method??
 		}
 	}
 
@@ -223,7 +240,7 @@ namespace pointcloud_utils
 		//std::cout << "Fitting plane to " << cloud.size() << " points\n";
 		if (cloud.size() < settings.min_points_to_fit)
 		{
-			std::cout << "Not enough points to fit plane\n";
+			//std::cout << "Not enough points to fit plane\n";
 			Eigen::Vector3f empty;
 			return empty;
 		}
@@ -333,9 +350,16 @@ namespace pointcloud_utils
 		bool continue_from_last_plane
 	)
 	{
-
-		//Get center of  the plane for one-dimensional translation tracking
-		if (!settings.use_point_track_method)
+		if (plane_coefficients[0] == 0 && plane_coefficients[1] == 0 && plane_coefficients[2] == 0)
+		{
+			//Bad plane fit! return zero's
+			plane_states.x = 0;
+			plane_states.y = 0;
+			plane_states.z = 0;
+			plane_states.roll = 0;
+			plane_states.pitch = 0;
+			plane_states.yaw = 0;
+		} else if (!settings.use_point_track_method)
 		{
 			// // do this at center of rotation instead
 			float center_x = (search_window.x_max + search_window.x_min) / 2;
@@ -564,6 +588,9 @@ namespace pointcloud_utils
 		roll = std::atan2(normal[2], normal[1])	+ pointcloud_utils::PI / 2; //angle about world x axis, 0 at y axis (horizontal)
 		pitch = std::atan2(normal[2], normal[0])+ pointcloud_utils::PI / 2; //angle about world y axis, 0 at x axis (horizontal)
 		yaw = std::atan2(normal[1], normal[0])	+ pointcloud_utils::PI / 2; //angle about world z axis, 0 at x axis (forward)
+		//roll = std::atan2(normal[2], normal[1])	; //angle about world x axis, 0 at y axis (horizontal)
+		//pitch = std::atan2(normal[2], normal[0]); //angle about world y axis, 0 at x axis (horizontal)
+		//yaw = std::atan2(normal[1], normal[0])	; //angle about world z axis, 0 at x axis (forward)
 	}
 
 } //end namespace pointcloud_utilss

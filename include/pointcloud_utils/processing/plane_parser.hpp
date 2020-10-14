@@ -27,17 +27,21 @@ namespace pointcloud_utils
 
 		struct Settings
 		{
-			bool iterate_plane_fit; //If true, will remove outliers to the fit plane and re-fit. 
+			bool iterate_plane_fit = false; //If true, will remove outliers to the fit plane and re-fit. 
 			//Will iterate max_iterations times, or until the plane fit has no outliers
 			int max_iterations; //if iterate_plane_fit is true, will limit the iterations to this number
 			float outlier_tolerance; // [m] distance of point to fitted plane to be considered an outlier
 
-			bool use_point_track_method; //if true, uses selected individual points on the plane to do plane fit 
+			bool use_point_track_method = false; //if true, uses selected individual points on the plane to do plane fit 
 										 // and translation tracking. NOTE: tracking individual points is highly subject to noise 
 										 // without frame-to-frame filtering. NOTE: this is not yet implemented
 		
 			int min_points_to_fit; 	//any fewer poiints, and we won't try to do a plane fit
     		bool report_offsets_at_origin; // if true, will give distance from origin to plane in each direction. Otherwise, will report distance vector normal to plane to origin
+			
+			bool do_transform = false; // if true, transform the cloud before processing
+			pointcloud_utils::Transform transform; // transform values to use (Roll Pitch Yaw ordered rotation matrix will be generated)
+			std::string transform_frame; //id of cloud after transform
 		};
 
 		struct States

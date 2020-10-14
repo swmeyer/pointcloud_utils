@@ -9,6 +9,8 @@
 // -------------------------------
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/PointField.h>
+
+#include <Eigen/Dense>
 // -------------------------------
 
 namespace pointcloud_utils
@@ -79,6 +81,16 @@ namespace pointcloud_utils
 		double z_max;
 	};
 
+	struct Transform
+	{
+		double x;
+		double y;
+		double z;
+		double roll;
+		double pitch;
+		double yaw;
+	};
+
 	/**
 	 * @function getIntensity
 	 * @brief    retrieves the intensity of the given point, if it exists
@@ -128,6 +140,15 @@ namespace pointcloud_utils
 	 */
 	template <class T> inline void convertFromPointCloud2(const sensor_msgs::PointCloud2& cloud, std::vector<T>& point_vector);
 	
+	/**
+	 * @function 	transformCloud
+	 * @brief 		transforms the given cloud by the given transform (assumes roll, pitch, yaw transform order)
+	 * @param 		cloud - points to transform
+	 * @param 		transform - transform to use
+	 * @return 		void
+	 */
+	template <class T> void transformCloud(std::vector<T>& cloud, const Transform& transform);
+
 } //end namespace pointcloud_utils
 
 #endif //end ifndef POINTCLOUD_UTILS_HPP

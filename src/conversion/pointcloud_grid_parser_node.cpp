@@ -48,8 +48,8 @@ std::vector<uint8_t> map_grid_bytes;
 // int new_map_width;
 // int new_map_height;
 // int new_resolution;
-// int new_z_scale_min;
-// int new_z_scale_max;
+// int new_value_scale_min;
+// int new_value_scale_max;
 bool has_new_params = false;
 // --------------------------
 
@@ -149,18 +149,18 @@ void reconfigureCallback(pointcloud_utils::PointCloudUtilsConfig &config, uint32
 	grid_parser->getSettings(settings);
 
 	// new_resolution = config.map_resolution;
-	// new_z_scale_min = config.z_scale_min;
-	// new_z_scale_max = config.z_scale_max;
+	// new_value_scale_min = config.value_scale_min;
+	// new_value_scale_max = config.value_scale_max;
 	// new_map_height =  config.map_height;
 	// new_map_width = config.map_width;
 	// has_new_params = true;
 
-	settings.z_scale_min = config.z_scale_min;
-	settings.z_scale_max = config.z_scale_max;
+	settings.value_scale_min = config.value_scale_min;
+	settings.value_scale_max = config.value_scale_max;
 	settings.centered_x = config.x_centered;
 	settings.centered_y = config.y_centered;
-
-	
+	settings.max_intensity = config.max_intensity;
+	settings.min_intensity = config.min_intensity;	
 
 	has_new_params = true;
 
@@ -200,8 +200,8 @@ void pointCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& msg)
 	// 	//map_width = new_map_width;
 	// 	//map_height = new_map_height;
 	// 	resolution = new_resolution;
-	// 	z_scale_min = new_z_scale_min;
-	// 	z_scale_max = new_z_scale_max;
+	// 	value_scale_min = new_value_scale_min;
+	// 	value_scale_max = new_value_scale_max;
 	// 	has_new_params = false;
 	// 	first = true;
 	// }
@@ -294,9 +294,10 @@ int main(int argc, char* argv[])
     n_.param<double>("z_min", settings.z_min, -10);
     n_.param<double>("z_max", settings.z_max, 10);
 
-    n_.param<double>("z_scale_max", settings.z_scale_max, 10);
-    n_.param<double>("z_scale_min", settings.z_scale_min, 10);
+    n_.param<double>("value_scale_max", settings.value_scale_max, 10);
+    n_.param<double>("value_scale_min", settings.value_scale_min, 10);
     n_.param<bool>("binary_map", settings.make_binary_map, false);
+    n_.param<bool>("use_intensity", settings.use_intensity, false);
 
     n_.param<double>("min_intensity",settings.min_intensity, 0);
     n_.param<double>("max_intensity", settings.max_intensity, 256);
@@ -367,8 +368,8 @@ int main(int argc, char* argv[])
 			// 	//map_width = new_map_width;
 			// 	//map_height = new_map_height;
 			// 	resolution = new_resolution;
-			// 	z_scale_min = new_z_scale_min;
-			// 	z_scale_max = new_z_scale_max;
+			// 	value_scale_min = new_value_scale_min;
+			// 	value_scale_max = new_value_scale_max;
 			// 	has_new_params = false;
 			// 	first = true;
 			// }

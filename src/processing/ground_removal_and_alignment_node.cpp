@@ -27,6 +27,7 @@ pointcloud_utils::GroundProcessor::Settings settings;
 std_msgs::Header header;
 
 bool visualize_plane;
+
 // --------------------------
 
 /**
@@ -204,6 +205,8 @@ int main(int argc, char* argv[])
 	n_.param<int>("min_points_to_fit", settings.plane_parser_settings.min_points_to_fit, 20);
     n_.param<bool>("report_offsets_at_origin", settings.plane_parser_settings.report_offsets_at_origin, false);
     
+	n_.param<float>("intensity_min", settings.intensity_min, 0);
+	n_.param<float>("intensity_max", settings.intensity_max, 256);
 
     n_.param<std::string>("aligned_cloud_frame", settings.aligned_cloud_frame, "/ground");
     n_.param<float>("ground_point_tolerance", settings.point_to_plane_tolerance, 0.1);		

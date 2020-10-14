@@ -197,8 +197,6 @@ namespace pointcloud_utils
 
 				pass_count++;
 			}
-
-
 	
 			uint i = 0;
 			uint j = 0;
@@ -245,16 +243,23 @@ namespace pointcloud_utils
 					grid_bytes[settings.map_width * i + j] = 255;
 				} else
 				{
-					grid(i,j) = std::max(grid(i,j), pt.z); //real-valued height grid
-					grid_bytes[settings.map_width * i + j] = std::round(std::min( ( std::max( (grid(i,j) - settings.z_scale_min), 0.0) * 256.0 ) / (settings.z_scale_max - settings.z_scale_min), 256.0)); //scaled value height grid
-					//value = std::min( ( std::max( (grid(i,j) - z_scale_min), 0.0) * 256.0 ) / (z_scale_max - z_scale_min), 256.0); 
-					//std::cout << "adjusted: " << grid(i,j) - z_scale_min << " range: " << z_scale_max - z_scale_min << std::endl;
-					//std::cout << "Target value: " << std::min( ( std::max( (grid(i,j) - z_scale_min), 0.0) * 256.0 ) / (z_scale_max - z_scale_min), 256.0) << std::endl;
+					if (settings.use_intensity)
+					{
+						grid(i,j) = std::max(grid(i,j), *intensity); //real-valued intensity grid
+					} else
+					{
+						grid(i,j) = std::max(grid(i,j), pt.z); //real-valued height grid
+					}
+					
+					grid_bytes[settings.map_width * i + j] = std::round(std::min( ( std::max( (grid(i,j) - settings.value_scale_min), 0.0) * 256.0 ) / (settings.value_scale_max - settings.value_scale_min), 256.0)); //scaled value height grid
+					//value = std::min( ( std::max( (grid(i,j) - value_scale_min), 0.0) * 256.0 ) / (value_scale_max - value_scale_min), 256.0); 
+					//std::cout << "adjusted: " << grid(i,j) - value_scale_min << " range: " << value_scale_max - value_scale_min << std::endl;
+					//std::cout << "Target value: " << std::min( ( std::max( (grid(i,j) - value_scale_min), 0.0) * 256.0 ) / (value_scale_max - value_scale_min), 256.0) << std::endl;
 					//std::cout << "Z value: " << grid(i,j) << " converted: " << (float) grid_bytes[map_width * i + j] << "\n";
 					if (j < settings.map_height && i < settings.map_width)
 					{
 						//TODO: this should be the same as the grid_bytes, yeah?
-						map_grid_bytes[settings.map_width * (settings.map_height - i) + (settings.map_width - j)] = (grid(i,j) * 256) / (settings.z_scale_max - settings.z_scale_min); //scaled value, flipped height grid
+						map_grid_bytes[settings.map_width * (settings.map_height - i) + (settings.map_width - j)] = (grid(i,j) * 256) / (settings.value_scale_max - settings.value_scale_min); //scaled value, flipped height grid
 					}
 				}
 			} 		

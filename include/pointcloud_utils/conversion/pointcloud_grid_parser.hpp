@@ -56,15 +56,16 @@ namespace pointcloud_utils
 			int new_map_width;
 			int new_map_height;
 			int new_resolution;
-			int new_z_scale_min;
-			int new_z_scale_max;
+			int new_value_scale_min;
+			int new_value_scale_max;
 
 			bool const_res;				//flag to freeze map resolution
 			bool const_size; 			//flag to limit map by cell num
 			bool use_bounds; 			//flag to use bounds on area of interest or not
 			bool use_first; 			//flag to control whether dynamic bounds are found once or every time
 			bool use_raytrace_to_clear_space; //flag to control whether to mark a three-value costmap or otherwise (note: overrides binary map)
-			bool make_binary_map; //if true, occupied cells have value 255, unoccupied 0	
+			bool make_binary_map; //if true, occupied cells have value 255, unoccupied 0
+			bool use_intensity; //if true, make a cell value from intensity rather than from height
 			bool use_shell_pointstruct; //if true, use the shell-style pointstruct to parse the cloud
 
 			// Area of interest bounds:
@@ -79,9 +80,10 @@ namespace pointcloud_utils
 			double min_intensity;
 			double max_intensity;
 			
-			double z_scale_max;
-			double z_scale_min; //scaling parameters for converting between data types
-			} Settings;
+			double value_scale_max;
+			double value_scale_min; //scaling parameters for converting between data types
+
+		} Settings;
 
 		void setSettings(Settings& settings);
 		void getSettings(Settings& settings);

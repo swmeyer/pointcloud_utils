@@ -31,6 +31,9 @@ namespace pointcloud_utils
 			std::string aligned_cloud_frame; //name of frame to report ground-aligned scans in
 			
 			float point_to_plane_tolerance; //[m] maximum acceptable distance for a point to be away from the plane and still be considerd planar
+			
+			float intensity_min;
+			float intensity_max;
 		};
 
 		GroundProcessor(GroundProcessor::Settings& settings);

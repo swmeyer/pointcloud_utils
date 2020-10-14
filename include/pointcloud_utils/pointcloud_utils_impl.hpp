@@ -112,6 +112,59 @@ namespace pointcloud_utils
 	//	memcpy(&(point_vector[0]), &(cloud->data[0]), cloud.row_step);
 	//}
 
+	/**
+	 * @function 	transformCloud
+	 * @brief 		transforms the given cloud by the given transform (assumes roll, pitch, yaw transform order)
+	 * @param 		cloud - points to transform
+	 * @param 		transform - transform to use
+	 * @return 		void
+	 */
+	template <class T> void transformCloud(std::vector<T>& cloud, const Transform& transform)
+	{
+		//TODO: confirm transform
+
+		double cos_roll  = std::cos(transform.roll);
+		double cos_pitch = std::cos(transform.pitch);
+		double cos_yaw	 = std::cos(transform.yaw);
+		double sin_roll  = std::sin(transform.roll);
+		double sin_pitch = std::sin(transform.pitch);
+		double sin_yaw	 = std::sin(transform.yaw);
+
+		//generate an affine transform in an eigen matrix from the current plane parameters
+		Eigen::Matrix3f rotation_matrix;
+		rotation_matrix << cos_pitch * cos_yaw,  									-cos_pitch * sin_yaw, 										sin_pitch,
+		                   (sin_roll * sin_pitch * cos_yaw + cos_roll * sin_yaw), 	(-sin_roll * sin_pitch * sin_yaw + cos_roll * cos_yaw), 	-sin_roll * cos_pitch,
+		                   (-cos_roll * sin_pitch * cos_yaw + sin_roll * sin_yaw),  (cos_roll * sin_pitch * sin_yaw + sin_roll * cos_yaw), 		cos_roll * cos_pitch;
+
+		//NOTE: Since this is a ground plane, we neglect any yaw mesasure, as it is practically unobservable
+
+
+		Eigen::Matrix4f transform_matrix;
+		transform_matrix << rotation_matrix.row(0), transform.x,
+					 rotation_matrix.row(1), transform.y,
+					 rotation_matrix.row(2), transform.z,
+					 0, 0, 0, 				 1;
+
+		Eigen::MatrixXf point_matrix(4, cloud.size());
+
+		int i = 0;
+		for (T pt : cloud)
+		{
+			point_matrix.col(i) << pt.x, pt.y, pt.z, 1;
+			i++;
+		}
+
+		Eigen::MatrixXf transformed_matrix(4, cloud.size());
+		transformed_matrix = transform_matrix * point_matrix;
+
+		for (uint i = 0; i < cloud.size(); i++)
+		{
+			 cloud[i].x = transformed_matrix.col(i)[0];
+			 cloud[i].y = transformed_matrix.col(i)[1];
+			 cloud[i].z = transformed_matrix.col(i)[2];
+		}
+	}
+
 } //end namespace pointcloud_utils
 
 #endif //end ifndef POINTCLOUD_UTILS_IMPL_HPP
