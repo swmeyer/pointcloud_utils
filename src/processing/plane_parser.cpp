@@ -587,9 +587,10 @@ namespace pointcloud_utils
 		//std::cout << "Normal: " << normal[0] << ", " << normal[1] << ", " << normal[2] << "\n";
 	
 		//World Roll, Pitch, Yaw: 
-		roll  = std::atan(normal[1]/ normal[2]); //angle of plane normal about world x axis, 0 at z axis (horizontal)
-		pitch = std::atan(normal[0]/ normal[2]); //angle of plane normal about world y axis, 0 at z axis (horizontal)
-		yaw   = std::atan(normal[1]/ normal[0]); //angle about world z axis, 0 at x axis (forward)
+// The axis of reference for each angle is treated as convention and must be known (this treats a horizontal plane as the default)
+		roll  = - std::atan2(normal[1]/ normal[2]); //angle of plane normal about world x axis, 0 at z axis (horizontal)
+		pitch = std::atan2(normal[0]/ normal[2]); //angle of plane normal about world y axis, 0 at z axis (horizontal)
+		yaw   = - std::atan2(normal[1]/ normal[0]); //angle about world z axis, 0 at x axis (forward)
 		//roll = std::atan2(normal[2], normal[1])	; //angle about world x axis, 0 at y axis (horizontal)
 		//pitch = std::atan2(normal[2], normal[0]); //angle about world y axis, 0 at x axis (horizontal)
 		//yaw = std::atan2(normal[1], normal[0])	; //angle about world z axis, 0 at x axis (forward)
