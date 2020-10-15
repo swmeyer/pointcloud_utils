@@ -42,6 +42,13 @@ namespace pointcloud_utils
 			bool do_transform = false; // if true, transform the cloud before processing
 			pointcloud_utils::Transform transform; // transform values to use (Roll Pitch Yaw ordered rotation matrix will be generated)
 			std::string transform_frame; //id of cloud after transform
+			
+			bool find_attitude_angles = true; // If true, report plane-axial plane intersection line angles (this is an alternate way of writing planar normal vector)
+			bool find_euler_angles = false; // If true, report euler angles (YPR) required to achieve the current planar orientation. Yaw will be set to zero since plane edge orientation is not tracked
+			//Otherwise, quaternions will be solved for
+
+			//TODO: turn these last two bools into params
+
 		};
 
 		struct States

@@ -586,15 +586,64 @@ namespace pointcloud_utils
 
 		//std::cout << "Normal: " << normal[0] << ", " << normal[1] << ", " << normal[2] << "\n";
 	
-		//World Roll, Pitch, Yaw: 
-// The axis of reference for each angle is treated as convention and must be known (this treats a horizontal plane as the default)
-// Note: these are the angles of plane lines which intersect the world frame cardinal planes. They do not represent euler roll, pitch, yaw angles - one of the angles is entirely explained by the other two? We can choose which one to ignore (I usually choose yaw)??
-		roll  = - std::atan2(normal[1]/ normal[2]); //angle of plane normal about world x axis, 0 at z axis (horizontal)
-		pitch = std::atan2(normal[0]/ normal[2]); //angle of plane normal about world y axis, 0 at z axis (horizontal)
-		yaw   = - std::atan2(normal[1]/ normal[0]); //angle about world z axis, 0 at x axis (forward)
-		//roll = std::atan2(normal[2], normal[1])	; //angle about world x axis, 0 at y axis (horizontal)
-		//pitch = std::atan2(normal[2], normal[0]); //angle about world y axis, 0 at x axis (horizontal)
-		//yaw = std::atan2(normal[1], normal[0])	; //angle about world z axis, 0 at x axis (forward)
+		//TODO: filter normal, and keep it from randomly inverting direction
+		//if (z_positive)
+		//{
+			if (normal[2] < 0)
+			{
+				normal *= -1;
+			}
+			if (normal[2] == 0)
+			{
+				//TODO: maintain a smooth motion of normal as we move past axes
+			}
+		//}
+
+		if (settings.find_attitude_angles)
+		{
+			//World Roll, Pitch, Yaw: 
+			// The axis of reference for each angle is treated as convention and must be known (this treats a horizontal plane as the default)
+			// Note: these are the angles of plane lines which intersect the world frame cardinal planes. They do not represent euler roll, pitch, yaw angles - one of the angles is entirely explained by the other two? We can choose which one to ignore (I usually choose yaw)?? - plus an arbitrary amount of in-plane yaw?
+			roll  = - std::atan2(normal[1], normal[2]); //angle of plane normal about world x axis, 0 at z axis (horizontal)
+			pitch =   std::atan2(normal[0], normal[2]); //angle of plane normal about world y axis, 0 at z axis (horizontal)
+			yaw   = - std::atan2(normal[1], normal[0]); //angle about world z axis, 0 at x axis (forward)
+			//roll = std::atan2(normal[2], normal[1])	; //angle about world x axis, 0 at y axis (horizontal)
+			//pitch = std::atan2(normal[2], normal[0]); //angle about world y axis, 0 at x axis (horizontal)
+			//yaw = std::atan2(normal[1], normal[0])	; //angle about world z axis, 0 at x axis (forward)
+			
+			//Maybe these aren't rolls, pitches, etc that can be applied, but rather are instantaneous ones?
+		
+			//Attitudes, such as from GPS, seem to be interested in projections. if projected onto a horizontal plane, how yawed is the forward vector? This is local planar yaw
+				// Pitch and roll are reported to horizontal reference plane somehow
+				//https://novatel.com/solutions/attitude
+				//"Attitude is the angular difference measured between an airplane’s axis and the line of the Earth’s horizon. Pitch attitude is the angle formed by the longitudinal axis, and bank attitude is the angle formed by the lateral axis."
+				// https://en.wikiversity.org/wiki/Aircraft_piloting/Attitude_flying
+					//This finds pitch, roll according to a certain planar yaw
+	
+			//These report pitch, roll angles of the plane to the axes. These are NOT Euler angles??. one of the three angles is zero (usually yaw)
+		} else if (settings.find_euler_angles)
+		{
+			//TODO: define YPR as the order, and solve for the successive rotations (yaw is zero here)
+			yaw = 0;
+			pitch = std::atan2(normal[0], normal[2]); //angle of plane normal about world y axis, 0 at z axis (horizontal)
+			//TODO: find roll about new x axis
+			//Rotate normal by pitch and yaw:
+			Eigen::Matrix3f rotation_matrix;
+			//std::cout << "Pitch: " << pitch << "\n";
+			rotation_matrix << std::cos(pitch),  0, std::sin(pitch),
+							   0, 				    1, 0,
+							   -std::sin(pitch), 0, std::cos(pitch);
+
+			Eigen::Vector3f new_normal = rotation_matrix * normal;
+
+
+			//std::cout << "New normal: " << new_normal[0] << ", " << new_normal[1] << ", " << new_normal[2] << "\n";
+			roll = - std::atan2(new_normal[1], new_normal[2]); //angle of plane normal about new x axis, with 0 at new z
+			//std::cout << "roll: " << roll << "\n";
+		} else
+		{
+			//TODO: quaternions?
+		}
 	}
 
 } //end namespace pointcloud_utilss
