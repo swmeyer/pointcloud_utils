@@ -142,7 +142,7 @@ namespace pointcloud_utils
 	
 	/**
 	 * @function 	transformCloud
-	 * @brief 		transforms the given cloud by the given transform (assumes roll, pitch, yaw transform order)
+	 * @brief 		transforms the given cloud by the given transform (assumes yaw, pitch, roll transform order)
 	 * @param 		cloud - points to transform
 	 * @param 		transform - transform to use
 	 * @return 		void

@@ -1,6 +1,6 @@
 <launch>
     <node pkg="pointcloud_utils" type="ground_processor" name="ground_parser"
-          required="true" output="screen" cwd="node">
+          required="true" cwd="node">
          
         <!-- <param name="cloud_topic_in" 	value="/invz_topic_1" /> -->
         <param name="cloud_topic_in"  value="/velodyne_points" />      
@@ -9,26 +9,26 @@
 		<param name="nonground_topic_out" value="/nonground_points" />
         <param name="visualize_plane"   value="true" />
 
-       	<!-- <param name="plane_x_min" value="3.0" />
-        <param name="plane_x_max" value="4.0" />
-        <param name="plane_y_min" value="-0.2" />
-        <param name="plane_y_max" value="0.2" />
+       	<param name="plane_x_min" value="0" />
+        <param name="plane_x_max" value="10" />
+        <param name="plane_y_min" value="-5" />
+        <param name="plane_y_max" value="0" />
         <param name="plane_z_min" value="-10" />
-        <param name="plane_z_max" value="10" /> -->
+        <param name="plane_z_max" value="10" />
 
-        <param name="plane_x_min" value="1" />
+        <!-- <param name="plane_x_min" value="1" />
         <param name="plane_x_max" value="1.2" />
         <param name="plane_y_min" value="-1" />
         <param name="plane_y_max" value="0.0" />
         <param name="plane_z_min" value="0.0" />
-        <param name="plane_z_max" value="0.5" /> 
+        <param name="plane_z_max" value="0.5" /> -->
 
 		<param name="use_point_track_method" value="false" />
         
-        <param name="track_plane_states_over_time" value="true" />
-        <param name="iterate_plane_fit" value="false" />
+        <param name="track_plane_states_over_time" value="false" />
+        <param name="iterate_plane_fit" value="true" />
         <param name="max_plane_fit_iterations" value="15" />
-        <param name="outlier_point_tolerance" value="0.05" />
+        <param name="outlier_point_tolerance" value="0.1" />
         <param name="min_points_to_fit" value="10" />
 
         <!-- <param name="iterate_plane_fit" value="true" />
@@ -40,8 +40,10 @@
         <param name="intensity_max"         value="256" />
 
         <param name="report_offsets_at_origin" value="true" /> #the alternative is to report plane distance vector at origin
-    
 
+        <param name="find_attitude_angles"  value="false" />
+        <param name="find_euler_angles"     value="true" /> 
+    
     	<param name="aligned_cloud_frame"	 value="/velodyne" />
     	<param name="ground_point_tolerance" value="0.05" />
 

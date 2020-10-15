@@ -204,7 +204,9 @@ int main(int argc, char* argv[])
 	n_.param<float>("outlier_point_tolerance", settings.plane_parser_settings.outlier_tolerance, 0.1);
 	n_.param<int>("min_points_to_fit", settings.plane_parser_settings.min_points_to_fit, 20);
     n_.param<bool>("report_offsets_at_origin", settings.plane_parser_settings.report_offsets_at_origin, false);
-    
+    n_.param<bool>("find_attitude_angles", settings.plane_parser_settings.find_attitude_angles, true);
+    n_.param<bool>("find_euler_angles", settings.plane_parser_settings.find_attitude_angles, false);
+	
 	n_.param<float>("intensity_min", settings.intensity_min, 0);
 	n_.param<float>("intensity_max", settings.intensity_max, 256);
 

@@ -114,7 +114,7 @@ namespace pointcloud_utils
 
 	/**
 	 * @function 	transformCloud
-	 * @brief 		transforms the given cloud by the given transform (assumes roll, pitch, yaw transform order)
+	 * @brief 		transforms the given cloud by the given transform (assumes yaw, pitch, roll transform order)
 	 * @param 		cloud - points to transform
 	 * @param 		transform - transform to use
 	 * @return 		void
@@ -132,9 +132,9 @@ namespace pointcloud_utils
 
 		//generate an affine transform in an eigen matrix from the current plane parameters
 		Eigen::Matrix3f rotation_matrix;
-		rotation_matrix << cos_pitch * cos_yaw,  									-cos_pitch * sin_yaw, 										sin_pitch,
-		                   (sin_roll * sin_pitch * cos_yaw + cos_roll * sin_yaw), 	(-sin_roll * sin_pitch * sin_yaw + cos_roll * cos_yaw), 	-sin_roll * cos_pitch,
-		                   (-cos_roll * sin_pitch * cos_yaw + sin_roll * sin_yaw),  (cos_roll * sin_pitch * sin_yaw + sin_roll * cos_yaw), 		cos_roll * cos_pitch;
+		rotation_matrix << cos_yaw * cos_pitch, 	(cos_yaw * sin_pitch * sin_roll - cos_roll * sin_yaw), 	(sin_yaw * sin_roll + cos_yaw * cos_roll * sin_pitch),
+		                   cos_pitch * sin_yaw, 	(cos_yaw * cos_roll + sin_yaw * sin_pitch * sin_roll), 	(cos_roll * sin_yaw * sin_pitch - cos_yaw * sin_roll),
+		                   -sin_pitch,        		cos+pitch * sin_roll, 									cos_pitch * cos_roll;
 
 		//NOTE: Since this is a ground plane, we neglect any yaw mesasure, as it is practically unobservable
 

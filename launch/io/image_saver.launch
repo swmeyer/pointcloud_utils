@@ -1,13 +1,13 @@
 <launch>
-    <node pkg="pointcloud_utils" type="img_saver.py" name="image_saver"
+    <!-- <node pkg="pointcloud_utils" type="img_saver.py" name="image_saver"
           required="true" output="screen" cwd="node">
       	   <param name="img_topic" 		value="/grid_image/innoviz" />
       	   <param name="folder_name" 		value="innoviz_images" />
-    </node>
+    </node> -->
 
     <node pkg="pointcloud_utils" type="img_saver.py" name="image_saver2"
           required="true" output="screen" cwd="node">
-      	   <param name="img_topic" 		value="/grid_image/velodyne" />
+      	   <param name="img_topic" 		value="/grid_image/velodyne_edge" />
       	   <param name="folder_name" 		value="velodyne_images" />
     </node>
 </launch>

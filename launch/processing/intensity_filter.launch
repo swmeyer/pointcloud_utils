@@ -4,7 +4,7 @@
          <!-- <param name="cloud_topic_in" value="/invz_topic_1" /> -->
          <param name="cloud_topic_in" value="/velodyne_points" />
          <param name="cloud_topic_out" value="/filtered_points" />
-         <param name="intensity_min" value="10" />
-         <param name="intensity_max" value="256" />
+         <param name="intensity_min" value="70" />
+         <param name="intensity_max" value="110" />
     </node>
 </launch> 
