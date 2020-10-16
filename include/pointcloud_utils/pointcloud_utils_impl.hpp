@@ -134,7 +134,7 @@ namespace pointcloud_utils
 		Eigen::Matrix3f rotation_matrix;
 		rotation_matrix << cos_yaw * cos_pitch, 	(cos_yaw * sin_pitch * sin_roll - cos_roll * sin_yaw), 	(sin_yaw * sin_roll + cos_yaw * cos_roll * sin_pitch),
 		                   cos_pitch * sin_yaw, 	(cos_yaw * cos_roll + sin_yaw * sin_pitch * sin_roll), 	(cos_roll * sin_yaw * sin_pitch - cos_yaw * sin_roll),
-		                   -sin_pitch,        		cos+pitch * sin_roll, 									cos_pitch * cos_roll;
+		                   -sin_pitch,        		cos_pitch * sin_roll, 									cos_pitch * cos_roll;
 
 		//NOTE: Since this is a ground plane, we neglect any yaw mesasure, as it is practically unobservable
 
