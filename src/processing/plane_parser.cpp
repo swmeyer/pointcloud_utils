@@ -71,19 +71,21 @@ namespace pointcloud_utils
 
 		//plane parsing!
 		std::vector<pointcloud_utils::pointstruct> cloud_parsed;
-		Eigen::Vector3f plane_coefficients;
+		Eigen::Vector4f plane_coefficients;
 		findPlane( cloud, cloud_parsed, search_window, plane_coefficients, plane_states, intensity_min, intensity_max);
 
-		if (plane_coefficients.size() != 3)
+		if (plane_coefficients.size() != 4)
 		{
 			plane_parameters.a_d = 0;
 			plane_parameters.b_d = 0;
 			plane_parameters.c_d = 0;
+			plane_parameters.variance = 1.0;
 		} else
 		{
 			plane_parameters.a_d = plane_coefficients[0];
 			plane_parameters.b_d = plane_coefficients[1];
 			plane_parameters.c_d = plane_coefficients[2];
+			plane_parameters.variance = plane_coefficients[3];
 		}
 
 		getPlaneStates( plane_coefficients, plane_states, search_window, continue_from_last_plane);
@@ -140,7 +142,7 @@ namespace pointcloud_utils
 	 * @Param 		plane_points - place to save parsed cloud
 	 * @Param 		search_window - bounds within which to process points
 	 * @param 		continue_from_last_plane - if true, updates tracked states using this plane fit
-	 * @param 		plane_coefficients - coefficients of the fitted plane equation
+	 * @param 		plane_coefficients - coefficients of the fitted plane equation, with variance
 	 * @param 		plane_states - values representing planar position and orientation
 	 * @param 		intensity_min - minimum intensity to accept into plane (default 0)
 	 * @param 		intensity_max - maximum intensity to accept into plane (default 256)
@@ -152,7 +154,7 @@ namespace pointcloud_utils
 		std::vector<pointcloud_utils::pointstruct>& cloud, 
 		std::vector<pointcloud_utils::pointstruct>& plane_points, 
 		const pointcloud_utils::SearchWindow& search_window,
-		Eigen::Vector3f& plane_coefficients,
+		Eigen::Vector4f& plane_coefficients,
 		PlaneParser::States& plane_states,
 		const float intensity_min,
 		const float intensity_max
@@ -230,18 +232,18 @@ namespace pointcloud_utils
 	/**
 	 * @Function 	fitPlane
 	 * @Param 		cloud - points to fit a plane to
-	 * @Return 		Eigen::Vector3f - vector of plane coefficients, a/d, b/d, c/d
-	 * @Brief 		Fits a plane equation (a/d * x + b/d * y + c/d * z = 1) to the given point cloud
+	 * @Return 		Eigen::Vector4f - vector of plane coefficients, a/d, b/d, c/d, and variance of the plane fit (square of normalized MSE between points and plane eqn?)
+ 	 * @Brief 		Fits a plane equation (a/d * x + b/d * y + c/d * z = 1) to the given point cloud
 	 * //TODO: what happens when my plane has d = 0?? (intersects the origin) - I guess the coefficients will approach infinity
 	 * //TODO: look into using robust regression to support outlier tolerance, and brainstorm other techniques for increasing plaraity of underlying points for each fit
 	 */
-	Eigen::Vector3f PlaneParser::fitPlane(const std::vector<pointcloud_utils::pointstruct>& cloud)
+	Eigen::Vector4f PlaneParser::fitPlane(const std::vector<pointcloud_utils::pointstruct>& cloud)
 	{
 		//std::cout << "Fitting plane to " << cloud.size() << " points\n";
 		if (cloud.size() < settings.min_points_to_fit)
 		{
 			//std::cout << "Not enough points to fit plane\n";
-			Eigen::Vector3f empty;
+			Eigen::Vector4f empty;
 			return empty;
 		}
 		//Plane fit over the ground point cluster!
@@ -260,17 +262,32 @@ namespace pointcloud_utils
 		//std::cout << "\n Matrix: " << points_matrix << "\n";
 		
 		//Create plane_coefficeints, the x vector:
-		Eigen::Vector3f plane_coefficients = Eigen::Vector3f::Zero();
+		Eigen::Vector4f plane_coefficients = Eigen::Vector4f::Zero();
 		
 		//Populate sum_vector, the b vector:
 		Eigen::VectorXf sum_vector = Eigen::VectorXf::Constant(cloud.size(), 1, 1);
 	
 		//Solve least squares:
 		plane_coefficients = points_matrix.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(sum_vector);
-	
+		float plane_fit_relative_error   = (points_matrix * plane_coefficients - sum_vector).norm() / sum_vector.norm(); //Norm is L2 norm, output is "relative error"
+		//https://eigen.tuxfamily.org/dox/group__TutorialLinearAlgebra.html
+		//(L2 norm IS standard deviation without an extra averaging term, and variance is standard deviation squared) -https://winderresearch.com/workshops/171027_standard_deviation/
+		// So, plane_fit_relative_error is essentially standard deviation of the data
+		//float plane_fit_relative_error   = (points_matrix * plane_coefficients - sum_vector).norm();
+
+		std::cout << "Plane fit relative error: " << plane_fit_relative_error << "\n";
+
+		float variance = std::pow(plane_fit_relative_error, 2);
+		std::cout << "Plane fit variance: " << variance << "\n";
+
 		//std::cout << "Found plane: " << plane_coefficients[0] << "x + " << plane_coefficients[1] << "y + " << plane_coefficients[2] << "z = 1\n";
-	
-		return plane_coefficients;
+		Eigen::Vector4f plane_coefficients_with_variance;
+		plane_coefficients_with_variance[0] = plane_coefficients[0];
+		plane_coefficients_with_variance[1] = plane_coefficients[1];
+		plane_coefficients_with_variance[2] = plane_coefficients[2];
+		plane_coefficients_with_variance[3] = variance;
+
+		return plane_coefficients_with_variance;
 	}
 
 	/**
@@ -280,7 +297,7 @@ namespace pointcloud_utils
 	 * @Reutnr 		int - number of outliers removed
 	 * @Brief 		Removes outliers that are out of tolerance of the given plane equation
 	 */
-	int PlaneParser::removeOutliers(std::vector<pointcloud_utils::pointstruct>& plane_points, const Eigen::Vector3f& plane_coefficients)
+	int PlaneParser::removeOutliers(std::vector<pointcloud_utils::pointstruct>& plane_points, const Eigen::Vector4f& plane_coefficients)
 	{
 		std::vector<pointcloud_utils::pointstruct> saved_points;
 		saved_points = plane_points; //TODO: make sure this isn't a linked reference
@@ -335,7 +352,7 @@ namespace pointcloud_utils
 
 	/**
 	 * @Function 	getPlaneStates
-	 * @param 		plane_coefficients - coefficients of the fitted plane equation
+	 * @param 		plane_coefficients - coefficients of the fitted plane equation, with variance
 	 * @param 		plane_states - values representing planar position and orientation (to be found)
 	 * @Param 		search_window - bounds within which to process points
 	 * @param 		continue_from_last_plane - if true, updates tracked states using this plane fit
@@ -344,12 +361,14 @@ namespace pointcloud_utils
 	 */
 	void PlaneParser::getPlaneStates
 	(
-		const Eigen::Vector3f& plane_coefficients,
+		const Eigen::Vector4f& plane_coefficients,
 		PlaneParser::States& plane_states,
 		const pointcloud_utils::SearchWindow& search_window,
 		bool continue_from_last_plane
 	)
 	{
+		//TODO: is there a way I can determine roll, pitch, yaw, x, y, z covariance from the plane fit variance of points from the plane?
+
 		if (plane_coefficients[0] == 0 && plane_coefficients[1] == 0 && plane_coefficients[2] == 0)
 		{
 			//Bad plane fit! return zero's
@@ -464,7 +483,8 @@ namespace pointcloud_utils
 			plane_states.x = origin_pt.x;
 			plane_states.y = origin_pt.y;
 			plane_states.z = origin_pt.z; //Note: This always gives me the center of the plane window to the sensor origin. 
-	
+		
+			plane_states.variance = plane_coefficients[3];
 		} else
 		{
 			std::cout << "Warning! Point track method has not yet been implemented\n";
@@ -513,14 +533,14 @@ namespace pointcloud_utils
 
 	/**
 	 * @Function 	getPlaneOrientation
-	 * @Param 		plane_coefficients - vector of plane equation coefficients, a/d, b/d, c/d
+	 * @Param 		plane_coefficients - vector of plane equation coefficients, a/d, b/d, c/d, with variance
 	 * @param 		roll - roll angle of the plane (to be found)
 	 * @param 		pitch - pitch angle of the plane (to be found)
 	 * @param 		yaw - yaw angle of the plane (to be found)
 	 * @Return 		void
 	 * @Brief 		determines the orientation of the plane described by the given plane equation
 	 */
-	void PlaneParser::getPlaneOrientation(const Eigen::Vector3f& plane_coefficients, double& roll, double& pitch, double& yaw, const float min_1, const float max_1, const float min_2, const float max_2)
+	void PlaneParser::getPlaneOrientation(const Eigen::Vector4f& plane_coefficients, double& roll, double& pitch, double& yaw, const float min_1, const float max_1, const float min_2, const float max_2)
 	{
 		//TODO: get quaternion and break down into roll, pitch, yaw instead?
 
@@ -577,7 +597,11 @@ namespace pointcloud_utils
 
 		//Note: for some reason, this seems to give angles that are 90', or pi/2 from truth (at least for a horizontal plane!)
 
-		Eigen::Vector3f normal = plane_coefficients;//todo: validate
+		Eigen::Vector3f normal;
+		normal[0] = plane_coefficients[0];
+		normal[1] = plane_coefficients[1];
+		normal[2] = plane_coefficients[2];
+
 		//Normalize the normal vector:
 		double norm = std::sqrt(std::pow(normal[0], 2) + std::pow(normal[1], 2) + std::pow(normal[2], 2));
 		normal[0] = normal[0]/norm;

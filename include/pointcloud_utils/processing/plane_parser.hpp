@@ -66,6 +66,8 @@ namespace pointcloud_utils
 			float roll_vel 	= 0;
 			float pitch_vel = 0;
 			float yaw_vel 	= 0;
+
+			float variance = 1.0;
 		
 		};
 
@@ -74,6 +76,7 @@ namespace pointcloud_utils
 			float a_d;
 			float b_d;
 			float c_d;
+			float variance;
 		};
 
 		enum pointValueIndex //used to specify which direction we expect this plane to be in
@@ -166,7 +169,7 @@ namespace pointcloud_utils
 		 * @Param 		cloud - point cloud to parse
 		 * @Param 		plane_points - place to save parsed cloud
 		 * @Param 		search_window - bounds within which to process points
-		 * @param 		plane_coefficients - coefficients of the fitted plane equation
+		 * @param 		plane_coefficients - coefficients of the fitted plane equation, with variance
 		 * @param 		plane_states - values representing planar position and orientation
 		 * @Return 		void
 		 * @param 		intensity_min - minimum intensity to accept into plane (default 0)
@@ -179,7 +182,7 @@ namespace pointcloud_utils
 			std::vector<pointcloud_utils::pointstruct>& cloud, 
 			std::vector<pointcloud_utils::pointstruct>& plane_points, 
 			const pointcloud_utils::SearchWindow& search_window,
-			Eigen::Vector3f& plane_coefficients,
+			Eigen::Vector4f& plane_coefficients,
 			PlaneParser::States& plane_states,
 			const float intensity_min,
 			const float intensity_max
@@ -188,25 +191,25 @@ namespace pointcloud_utils
 		/**
 		 * @Function 	fitPlane
 		 * @Param 		cloud - points to fit a plane to
-		 * @Return 		Eigen::Vector3f - vector of plane coefficients, a/d, b/d, c/d
+		 * @Return 		Eigen::Vector4f - vector of plane coefficients, a/d, b/d, c/d, and variance of the plane fit (square of normalized MSE between points and plane eqn?)
 		 * @param 		intensity_min - minimum intensity to accept into plane (default 0)
 		 * @param 		intensity_max - maximum intensity to accept into plane (default 256)
 		 * @Brief 		Fits a plane equation (a/d * x + b/d * y + c/d * z = 1) to the given point cloud
 		 */
-		Eigen::Vector3f fitPlane(const std::vector<pointcloud_utils::pointstruct>& cloud);
+		Eigen::Vector4f fitPlane(const std::vector<pointcloud_utils::pointstruct>& cloud);
 
 		/**
 		 * @Function 	removeOutliers
 		 * @Param 		plane_points - points belonging to the current plane
-		 * @Param 		plane_coefficients - parameters of the current plane fit
+		 * @Param 		plane_coefficients - parameters of the current plane fit, with variance
 		 * @Reutnr 		int - number of outliers removed
 		 * @Brief 		Removes outliers that are out of tolerance of the given plane equation
 		 */
-		int removeOutliers(std::vector<pointcloud_utils::pointstruct>& plane_points, const Eigen::Vector3f& plane_coefficients);
+		int removeOutliers(std::vector<pointcloud_utils::pointstruct>& plane_points, const Eigen::Vector4f& plane_coefficients);
 	
 		/**
 		 * @Function 	getPlaneStates
-		 * @param 		plane_coefficients - coefficients of the fitted plane equation
+		 * @param 		plane_coefficients - coefficients of the fitted plane equation, with variance
 		 * @param 		plane_states - values representing planar position and orientation (to be found)
 		 * @Param 		search_window - bounds within which to process points
 		 * @param 		continue_from_last_plane - if true, updates tracked states using this plane fit
@@ -215,7 +218,7 @@ namespace pointcloud_utils
 		 */
 		void getPlaneStates
 		(
-			const Eigen::Vector3f& plane_coefficients,
+			const Eigen::Vector4f& plane_coefficients,
 			PlaneParser::States& plane_states,
 			const pointcloud_utils::SearchWindow& search_window,
 			bool continue_from_last_plane
@@ -223,14 +226,14 @@ namespace pointcloud_utils
 
 		/**
 		 * @Function 	getPlaneOrientation
-		 * @Param 		plane_coefficients - vector of plane equation coefficients, a/d, b/d, c/d
+		 * @Param 		plane_coefficients - vector of plane equation coefficients, a/d, b/d, c/d, with variance
 		 * @param 		roll - roll angle of the plane (to be found)
 		 * @param 		pitch - pitch angle of the plane (to be found)
 		 * @param 		yaw - yaw angle of the plane (to be found)
 		 * @Return 		void
 		 * @Brief 		determines the orientation of the plane described by the given plane equation
 		 */
-		void getPlaneOrientation(const Eigen::Vector3f& plane_coefficients, double& roll, double& pitch, double& yaw, const float min_1, const float max_1, const float min_2, const float max_2);
+		void getPlaneOrientation(const Eigen::Vector4f& plane_coefficients, double& roll, double& pitch, double& yaw, const float min_1, const float max_1, const float min_2, const float max_2);
 
 	}; //end class PointCloudGToLaserScanConverter
 
