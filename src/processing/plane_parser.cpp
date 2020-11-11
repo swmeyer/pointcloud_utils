@@ -72,8 +72,10 @@ namespace pointcloud_utils
 		//plane parsing!
 		std::vector<pointcloud_utils::pointstruct> cloud_parsed;
 		Eigen::Vector4f plane_coefficients;
+		//std::cout << "Entering plane finding\n";
 		findPlane( cloud, cloud_parsed, search_window, plane_coefficients, plane_states, intensity_min, intensity_max);
 
+		//std::cout << "Finished plane finding\n";
 		if (plane_coefficients.size() != 4)
 		{
 			plane_parameters.a_d = 0;
@@ -89,6 +91,8 @@ namespace pointcloud_utils
 		}
 
 		getPlaneStates( plane_coefficients, plane_states, search_window, continue_from_last_plane);
+
+		//std::cout << "Finished getting plane states\n";
 
 		if (continue_from_last_plane)
 		{
@@ -211,9 +215,12 @@ namespace pointcloud_utils
 			//std::cout << "Found ground points: " << ground_points.size() << "\n";
 			
 			//Plane fit over the ground point cluster!
+			//std::cout << "entering plane fit method\n";
 			plane_coefficients = fitPlane(plane_points);
+			//std::cout << "Fitted plane\n";
 			if (settings.iterate_plane_fit)
 			{
+				//std::cout << "removing outliers\n";
 				int plane_fit_iterations = 1;
 				int outliers_removed = removeOutliers(plane_points, plane_coefficients);
 				while (plane_fit_iterations < settings.max_iterations && outliers_removed > 0)
@@ -262,23 +269,29 @@ namespace pointcloud_utils
 		//std::cout << "\n Matrix: " << points_matrix << "\n";
 		
 		//Create plane_coefficeints, the x vector:
-		Eigen::Vector4f plane_coefficients = Eigen::Vector4f::Zero();
+		Eigen::Vector3f plane_coefficients = Eigen::Vector3f::Zero();
 		
 		//Populate sum_vector, the b vector:
 		Eigen::VectorXf sum_vector = Eigen::VectorXf::Constant(cloud.size(), 1, 1);
 	
 		//Solve least squares:
 		plane_coefficients = points_matrix.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(sum_vector);
-		float plane_fit_relative_error   = (points_matrix * plane_coefficients - sum_vector).norm() / sum_vector.norm(); //Norm is L2 norm, output is "relative error"
+		
+		//Try to get a variance measure:
+		//float plane_fit_relative_error   = (points_matrix * plane_coefficients - sum_vector).norm() / sum_vector.norm(); //Norm is L2 norm, output is "relative error"
 		//https://eigen.tuxfamily.org/dox/group__TutorialLinearAlgebra.html
 		//(L2 norm IS standard deviation without an extra averaging term, and variance is standard deviation squared) -https://winderresearch.com/workshops/171027_standard_deviation/
 		// So, plane_fit_relative_error is essentially standard deviation of the data
 		//float plane_fit_relative_error   = (points_matrix * plane_coefficients - sum_vector).norm();
 
-		std::cout << "Plane fit relative error: " << plane_fit_relative_error << "\n";
+		//std::cout << "Plane fit relative error: " << plane_fit_relative_error << "\n";
+
+		//To make it more like a distance to plane: https://mathinsight.org/distance_point_plane
+		float plane_fit_relative_error   = ((points_matrix * plane_coefficients - sum_vector).norm() / plane_coefficients.norm()) / cloud.size(); //Norm is L2 norm, output is "relative error"
+		
 
 		float variance = std::pow(plane_fit_relative_error, 2);
-		std::cout << "Plane fit variance: " << variance << "\n";
+		//std::cout << "Plane fit variance: " << variance << "\n";
 
 		//std::cout << "Found plane: " << plane_coefficients[0] << "x + " << plane_coefficients[1] << "y + " << plane_coefficients[2] << "z = 1\n";
 		Eigen::Vector4f plane_coefficients_with_variance;
