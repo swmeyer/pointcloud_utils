@@ -118,6 +118,33 @@ namespace pointcloud_utils
 			const float intensity_min = 0,
 			const float intentisty_max = 256
 		);
+
+		/**
+		 * @function 	parsePlane
+		 * @brief 		finds the plane-fit of the given cloud, using the given window bounds
+		 * @param 		cloud - inputted 3D point cloud
+		 * @param 		plane_points  - space to store the filtered plane points
+		 * @param 		plane_parameters - coefficients of the fitted plane equation
+		 * @param 		plane_states - values representing planar position and orientation
+		 * @param 		search_window - window within which to process points for this plane
+		 * @param 		continue_from_last_plane - if true, updates tracked states using this plane fit
+		 * @param 		time - rostime in seconds for this cloud
+	 	 * @param 		intensity_min - minimum intensity to accept into plane (default 0)
+		 * @param 		intensity_max - maximum intensity to accept into plane (default 256)
+		 * @return 		void
+		 */
+		void parsePlane
+		(
+			std::vector<pointcloud_utils::pointstruct>& cloud, 
+			std::vector<pointcloud_utils::pointstruct>& filtered_cloud,
+			PlaneParser::PlaneParameters& plane_parameters,
+			PlaneParser::States& plane_states,
+			pointcloud_utils::SearchWindow& search_window,
+			bool continue_from_last_plane,
+			const double time,
+			const float intensity_min = 0,
+			const float intentisty_max = 256
+		);
 		
 		// //TODO: make a templated version which requires the specification of a pointstruct type
 		// /**

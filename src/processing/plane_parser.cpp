@@ -51,6 +51,69 @@ namespace pointcloud_utils
 		const float intensity_max
 	)
 	{
+
+		// convert to point vector
+		pointcloud_utils::convertFromPointCloud2(cloud_in, cloud);
+		
+		std::vector<pointcloud_utils::pointstruct> filtered_cloud_vector;
+
+		this->parsePlane
+		(
+			cloud, 
+			filtered_cloud_vector,
+			plane_parameters, 
+			plane_states, 
+			search_window, 
+			continue_from_last_plane,
+			cloud_in->header.stamp.toSec(),
+			intensity_min,
+			intensity_max
+		);
+
+		//convert back to pointcloud message:
+		filtered_cloud.header = cloud_in->header;
+		filtered_cloud.fields = cloud_in->fields;
+		filtered_cloud.point_step = cloud_in->point_step;
+		filtered_cloud.height = 1;
+		filtered_cloud.width = filtered_cloud_vector.size();
+		filtered_cloud.row_step = filtered_cloud.point_step * filtered_cloud_vector.size();
+			
+		if (settings.do_transform)
+		{
+			filtered_cloud.header.frame_id = settings.transform_frame;
+		}
+		//std::cout << "Plane Coefficients: " << plane_parameters.a_d << ", so on\n";
+		//std::cout << "Plane states: " << plane_states.x << ", so on\n";
+
+		filtered_cloud.data.resize(filtered_cloud.row_step);
+		memcpy(&(filtered_cloud.data[0]), &(filtered_cloud_vector[0]), filtered_cloud.row_step);
+	
+	}
+	/**
+	 * @function 	parsePlane
+	 * @brief 		finds the plane-fit of the given cloud, using the given window bounds
+	 * @param 		cloud - inputted 3D point cloud
+	 * @param 		plane_points  - space to store the filtered plane points
+	 * @param 		plane_parameters - coefficients of the fitted plane equation
+	 * @param 		plane_states - values representing planar position and orientation
+	 * @param 		time - rostime in seconds for this cloud
+	 * @param 		search_window - window within which to process points for this plane
+	 * @param 		continue_from_last_plane - if true, updates tracked states using this plane fit
+	 * @return 		void
+	 */
+	void PlaneParser::parsePlane
+	(
+		std::vector<pointcloud_utils::pointstruct>& cloud,
+		std::vector<pointcloud_utils::pointstruct>& filtered_cloud,
+		PlaneParser::PlaneParameters& plane_parameters,
+		PlaneParser::States& plane_states,
+		pointcloud_utils::SearchWindow& search_window,
+		bool continue_from_last_plane, 
+		const double time,
+		const float intensity_min,
+		const float intensity_max
+	)
+	{
 		if (continue_from_last_plane)
 		{
 			if (first)
@@ -58,11 +121,9 @@ namespace pointcloud_utils
 				//first = false;
 				last_state_time = this_state_time;
 			}
-			this_state_time = cloud_in->header.stamp.toSec();
+			this_state_time = time;
 		}
 
-		// convert to point vector
-		pointcloud_utils::convertFromPointCloud2(cloud_in, cloud);
 
 		if (settings.do_transform)
 		{
@@ -102,23 +163,10 @@ namespace pointcloud_utils
 				//Initialize filter:
 			}
 		}
-		//convert back to pointcloud message:
-		filtered_cloud.header = cloud_in->header;
-		filtered_cloud.fields = cloud_in->fields;
-		filtered_cloud.point_step = cloud_in->point_step;
-		filtered_cloud.height = 1;
-		filtered_cloud.width = cloud_parsed.size();
-		filtered_cloud.row_step = filtered_cloud.point_step * cloud_parsed.size();
-			
-		if (settings.do_transform)
-		{
-			filtered_cloud.header.frame_id = settings.transform_frame;
-		}
-		//std::cout << "Plane Coefficients: " << plane_parameters.a_d << ", so on\n";
-		//std::cout << "Plane states: " << plane_states.x << ", so on\n";
 
-		filtered_cloud.data.resize(filtered_cloud.row_step);
-		memcpy(&(filtered_cloud.data[0]), &(cloud_parsed[0]), filtered_cloud.row_step);
+		//std::cout << "Points found: " << cloud_parsed.size() << "\n";
+
+		filtered_cloud = cloud_parsed;
 	}
 
 	//TODO: make a templated version which requires the specification of a pointstruct type
@@ -188,18 +236,26 @@ namespace pointcloud_utils
 	
 		//std::cout << "bounds: " << x_max << ", " << x_min << ", " << y_max << ", " << y_min
 		//						<< ", " << z_max << ", " << z_min << "\n";
-	
+		
+		//std::cout << "bounds: " << search_window.x_max << ", " << search_window.x_min << ", "
+		//						<< search_window.y_max << ", " << search_window.y_min << ", "
+		//						<< search_window.z_max << ", " << search_window.z_min << ", "
+		//						<< intensity_max 	   << ", " << intensity_min << "\n";
+
 		//for each point in the cloud, push it to the cloud_parsed if it is not filtered out
+		//std::cout << "Cloud size: " << cloud.size() << "\n";
 		for (pointcloud_utils::pointstruct pt : cloud)
 		{
 			if (!settings.use_point_track_method)
 			{
+				//std::cout << "Point: " << pt.x << ", " << pt.y << ", " << pt.z << ", " << pt.intensity << "\n";
 				if (pt.x <= search_window.x_max && pt.x >= search_window.x_min &&
 					pt.y <= search_window.y_max && pt.y >= search_window.y_min &&
 					pt.z <= search_window.z_max && pt.z >= search_window.z_min &&
 					pt.intensity <= intensity_max && pt.intensity >= intensity_min)
 				{
 					plane_points.push_back(pt);
+					//std::cout << "Found point!\n";
 				}
 			} else
 			{
@@ -482,8 +538,6 @@ namespace pointcloud_utils
 				plane_states.y_vel = (origin_pt.y - tracked_plane_states.y) / elapsed_time;
 				plane_states.z_vel = (origin_pt.z - tracked_plane_states.z) / elapsed_time;
 			}
-
-
 	
 			plane_states.roll = roll;
 			plane_states.pitch = pitch;

@@ -65,6 +65,7 @@ add_library(pointcloud_utils
   src/io/pointcloud_saver.cpp 
   src/conversion/pointcloud_grid_parser.cpp 
   src/conversion/pointcloud_to_laserscan.cpp
+  src/conversion/pointcloud_transformer.cpp
   src/processing/intensity_filter.cpp
   src/processing/plane_parser.cpp 
   src/processing/ground_processor.cpp )
@@ -78,6 +79,10 @@ target_link_libraries(pointcloud_grid_parser ${catkin_LIBRARIES})
 add_executable(pointcloud_to_laserscan src/conversion/pointcloud_to_laserscan.cpp src/conversion/pointcloud_to_laserscan_node.cpp)
 add_dependencies(pointcloud_to_laserscan ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS}  ${PROJECT_NAME}_gencfg)
 target_link_libraries(pointcloud_to_laserscan ${catkin_LIBRARIES})
+
+add_executable(       pointcloud_transformer src/conversion/pointcloud_transformer.cpp src/conversion/pointcloud_transformer_node.cpp)
+add_dependencies(     pointcloud_transformer ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS}  ${PROJECT_NAME}_gencfg)
+target_link_libraries(pointcloud_transformer ${catkin_LIBRARIES})
 
 #io
 add_executable(pointcloud_saver src/io/pointcloud_saver_node.cpp src/io/pointcloud_saver.cpp)

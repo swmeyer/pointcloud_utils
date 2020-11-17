@@ -89,6 +89,7 @@ namespace pointcloud_utils
 		double roll;
 		double pitch;
 		double yaw;
+		double last_angle; //for using true euler rotations, this is the last applied angle rotation (about a repeated axis)
 	};
 
 	/**
