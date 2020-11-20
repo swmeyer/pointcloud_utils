@@ -68,6 +68,23 @@ namespace pointcloud_utils
 			);
 
 			/**
+			 * @function 	transformCloud
+			 * @brief 		transforms the given cloud by the given transform
+			 * @param 		cloud - points to transform
+			 * @param 		transform_matrix - holder of the transform matrix to use
+			 * @param 		fwd_transform - if true, will apply the transform as-is. If false, will apply the inverse transform
+			 * @param 		publish_transform - if true, broadcast a tf to the tf tree. if false, don't publish transform
+			 * @return 		void
+			 */
+			void transformCloud
+			(
+				std::vector<pointstruct>& cloud, 
+				const Eigen::Matrix4f& transform_matrix,
+				const bool& fwd_transform,
+				const bool& publish_transform = false
+			);
+
+			/**
 			 * @function 	getAngleOrderType
 			 * @brief 		given a string of 3 letters representing the angle order,
 			 *				determine which enumerated angle order is being requested
@@ -82,7 +99,7 @@ namespace pointcloud_utils
 			 * @brief 		given the transform values and an angle order for the rotations to be applied in (rotation frame either local or world-fixed),
 			 * 			    generate a 4x4 affine transform matrix that includes first the rotation by the angles about body-fixed axes and then the translation in
 			 * 				the rotated frame
-			 * @param 		transformMatrix - place to store the generated transform matrix
+			 * @param 		transform_matrix - place to store the generated transform matrix
 			 * @param 		transform - holder of the rotation and translation values to use
 			 * @param 		angle_order - the order the given rotations should be applied in
 			 * @param 		rotation_frame - the frame the user intended the angles to be applied in
@@ -91,7 +108,7 @@ namespace pointcloud_utils
 			 */
 			void generateTransformMatrix
 			(
-				Eigen::MatrixXf& transformMatrix, 
+				Eigen::Matrix4f& transform_matrix, 
 				const Transform& transform, 
 				const angleOrder& angle_order,
 				const rotationFrame& rotation_frame,

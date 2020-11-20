@@ -93,11 +93,6 @@ add_executable(bag_parser src/io/bag_parser.cpp)
 add_dependencies(bag_parser ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS}  ${PROJECT_NAME}_gencfg)
 target_link_libraries(bag_parser ${catkin_LIBRARIES})
 
-#oddball
-add_executable(distance_marker_publisher src/oddball/distance_marker_publisher.cpp)
-add_dependencies(distance_marker_publisher ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(distance_marker_publisher ${catkin_LIBRARIES})
-
 #processing
 add_executable(ground_bounce_counter src/processing/ground_error_detector.cpp)
 add_dependencies(ground_bounce_counter ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -115,7 +110,14 @@ add_executable(ground_processor src/processing/ground_removal_and_alignment_node
 add_dependencies(ground_processor ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(ground_processor ${catkin_LIBRARIES})
 
+#test
+add_executable(distance_marker_publisher src/test/distance_marker_publisher.cpp)
+add_dependencies(distance_marker_publisher ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(distance_marker_publisher ${catkin_LIBRARIES})
 
+add_executable(plane_points_generator src/test/plane_points_generator.cpp)
+add_dependencies(plane_points_generator ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(plane_points_generator ${catkin_LIBRARIES})
 
 #############
 ## INSTALL ##

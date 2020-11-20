@@ -47,10 +47,32 @@ namespace pointcloud_utils
 	{
 		std::cout << "Transforming cloud with angle order " << angle_order << "\n";
 		//Generate transform matrix:
-		Eigen::MatrixXf transform_matrix;
+		Eigen::Matrix4f transform_matrix;
 		generateTransformMatrix(transform_matrix, transform, angle_order, rotation_frame, translate_first);
 
 		std::cout << "generated transform: \n" << transform_matrix << "\n";
+
+		this->transformCloud(cloud, transform_matrix, fwd_transform, publish_transform);
+	}
+
+	/**
+	 * @function 	transformCloud
+	 * @brief 		transforms the given cloud by the given transform
+	 * @param 		cloud - points to transform
+	 * @param 		transform_matrix - holder of the transform matrix to use
+	 * @param 		fwd_transform - if true, will apply the transform as-is. If false, will apply the inverse transform
+	 * @param 		publish_transform - if true, broadcast a tf to the tf tree. if false, don't publish transform
+	 * @return 		void
+	 */
+	void PointCloudTransformer::transformCloud
+	(
+		std::vector<pointstruct>& cloud, 
+		const Eigen::Matrix4f& transform_matrix,
+		const bool& fwd_transform,
+		const bool& publish_transform
+	)
+	{
+		Eigen::Matrix4f utility_transform = transform_matrix;
 
 		//Generate point matrix:
 		Eigen::MatrixXf point_matrix(4, cloud.size());
@@ -65,12 +87,12 @@ namespace pointcloud_utils
 		//Check transform direction:
 		if (!fwd_transform)
 		{
-			transform_matrix = transform_matrix.inverse();
+			utility_transform = utility_transform.inverse();
 		}
 
 		//Apply transform:
 		Eigen::MatrixXf transformed_matrix(4, cloud.size());
-		transformed_matrix = transform_matrix * point_matrix;
+		transformed_matrix = utility_transform * point_matrix;
 
 		//Save transformed points into the cloud:
 		for (uint i = 0; i < cloud.size(); i++)
@@ -155,14 +177,14 @@ namespace pointcloud_utils
 	 */
 	void PointCloudTransformer::generateTransformMatrix
 	(
-		Eigen::MatrixXf& transform_matrix, 
+		Eigen::Matrix4f& transform_matrix, 
 		const Transform& transform, 
 		const PointCloudTransformer::angleOrder& angle_order, 
 		const PointCloudTransformer::rotationFrame& rotation_frame,
 		const bool& translate_first
 	)
 	{
-		transform_matrix = Eigen::MatrixXf::Identity(4,4);
+		transform_matrix = Eigen::Matrix4f::Identity();
 
 		//Useful trig values:
 		double cos_roll  = std::cos(transform.roll);

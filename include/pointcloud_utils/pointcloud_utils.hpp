@@ -90,6 +90,8 @@ namespace pointcloud_utils
 		double pitch;
 		double yaw;
 		double last_angle; //for using true euler rotations, this is the last applied angle rotation (about a repeated axis)
+		std::string child_frame;
+		std::string parent_frame; //together, child and parent frames are the to and from frames represented by the transform
 	};
 
 	/**

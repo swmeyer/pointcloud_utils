@@ -43,8 +43,9 @@ namespace pointcloud_utils
 			pointcloud_utils::Transform transform; // transform values to use (Roll Pitch Yaw ordered rotation matrix will be generated)
 			std::string transform_frame; //id of cloud after transform
 			
-			bool find_attitude_angles = true; // If true, report plane-axial plane intersection line angles (this is an alternate way of writing planar normal vector)
+			bool find_attitude_angles = false; // If true, report plane-axial plane intersection line angles (this is an alternate way of writing planar normal vector)
 			bool find_euler_angles = false; // If true, report euler angles (YPR) required to achieve the current planar orientation. Yaw will be set to zero since plane edge orientation is not tracked
+			bool find_simple_angles = true; // If true, report simple asin angles
 			//Otherwise, quaternions will be solved for
 
 			//TODO: turn these last two bools into params
@@ -75,8 +76,12 @@ namespace pointcloud_utils
 		{
 			float a_d;
 			float b_d;
-			float c_d;
+			float c_d; //TODO:remove these, and have the plane parser set d = 1
 			float variance;
+			float a;
+			float b;
+			float c;
+			float d;
 		};
 
 		enum pointValueIndex //used to specify which direction we expect this plane to be in

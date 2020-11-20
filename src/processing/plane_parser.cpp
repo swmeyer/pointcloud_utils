@@ -334,6 +334,7 @@ namespace pointcloud_utils
 		plane_coefficients = points_matrix.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(sum_vector);
 		
 		//Try to get a variance measure:
+		//TYPE 1: //TODO: make this a variable
 		//float plane_fit_relative_error   = (points_matrix * plane_coefficients - sum_vector).norm() / sum_vector.norm(); //Norm is L2 norm, output is "relative error"
 		//https://eigen.tuxfamily.org/dox/group__TutorialLinearAlgebra.html
 		//(L2 norm IS standard deviation without an extra averaging term, and variance is standard deviation squared) -https://winderresearch.com/workshops/171027_standard_deviation/
@@ -342,6 +343,7 @@ namespace pointcloud_utils
 
 		//std::cout << "Plane fit relative error: " << plane_fit_relative_error << "\n";
 
+		//TYPE 2:
 		//To make it more like a distance to plane: https://mathinsight.org/distance_point_plane
 		float plane_fit_relative_error   = ((points_matrix * plane_coefficients - sum_vector).norm() / plane_coefficients.norm()) / cloud.size(); //Norm is L2 norm, output is "relative error"
 		
@@ -487,6 +489,10 @@ namespace pointcloud_utils
 				origin_pt.x = 1 / plane_coefficients[0];
 				origin_pt.y = 1 / plane_coefficients[1];
 				origin_pt.z = 1 / plane_coefficients[2];
+
+				if (std::isnan(origin_pt.x) || std::isinf(origin_pt.x)) origin_pt.x = 0;
+				if (std::isnan(origin_pt.y) || std::isinf(origin_pt.y)) origin_pt.y = 0;				
+				if (std::isnan(origin_pt.z) || std::isinf(origin_pt.z)) origin_pt.z = 0;
 			} else
 			{
 				//Distance to plane from origin: https://mathinsight.org/distance_point_plane
@@ -680,14 +686,14 @@ namespace pointcloud_utils
 		//TODO: filter normal, and keep it from randomly inverting direction
 		//if (z_positive)
 		//{
-			if (normal[2] < 0)
-			{
-				normal *= -1;
-			}
-			if (normal[2] == 0)
-			{
-				//TODO: maintain a smooth motion of normal as we move past axes
-			}
+		// /	if (normal[2] < 0)
+		// /	{
+		// /		normal *= -1;
+		// /	}
+		// /	if (normal[2] == 0)
+		// /	{
+		// /		//TODO: maintain a smooth motion of normal as we move past axes
+		// /	}
 		//}
 
 		if (settings.find_attitude_angles)
@@ -731,6 +737,23 @@ namespace pointcloud_utils
 			//std::cout << "New normal: " << new_normal[0] << ", " << new_normal[1] << ", " << new_normal[2] << "\n";
 			roll = - std::atan2(new_normal[1], new_normal[2]); //angle of plane normal about new x axis, with 0 at new z
 			//std::cout << "roll: " << roll << "\n";
+		} else if (settings.find_simple_angles)
+		{
+
+			//std::cout << "Finding simple angles\n";
+			//std::cout << "Normal: \n" << normal << "\n";
+			//std::cout << "Plane eqn: \n" << plane_coefficients << "\n";
+			yaw = 0;
+			double norm2 = std::sqrt(std::pow(normal[0], 2) + std::pow(normal[1], 2) + std::pow(normal[2], 2));
+			//std::cout << "Norm: " << norm2 << "\n";
+			pitch = std::asin(normal[0]);
+			roll = std::asin(- normal[1]);
+
+			//std::cout << "pitch: " << pitch << "\n";
+			//std::cout << "roll: " << roll << "\n";
+
+			if (std::isinf(pitch) || std::isnan(pitch)) pitch = 0;
+			if (std::isinf(roll) || std::isnan(roll)) roll = 0;
 		} else
 		{
 			//TODO: quaternions?
