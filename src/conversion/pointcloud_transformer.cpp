@@ -396,12 +396,17 @@ namespace pointcloud_utils
 
 		if (translate_first)
 		{
-			translation_matrix = rotation_matrix * translation_matrix; //TODO: proof
+			//std::cout << "translation before rotation: \n";
+			//std::cout << translation_matrix << "\n";
+			translation_matrix = rotation_matrix * translation_matrix;
 		}
 
-		transform_matrix << rotation_matrix.row(0), transform.x,
-					 rotation_matrix.row(1), 		transform.y,
-					 rotation_matrix.row(2), 		transform.z,
+		//std::cout << "applied translation: \n";
+		//std::cout << translation_matrix << "\n";
+
+		transform_matrix << rotation_matrix.row(0), translation_matrix(0),
+					 rotation_matrix.row(1), 		translation_matrix(1),
+					 rotation_matrix.row(2), 		translation_matrix(2),
 					 0, 0, 0, 				 		1;
 
 	}

@@ -553,9 +553,9 @@ namespace pointcloud_utils
 			// plane_states.y = track_pt_y.y;
 			// plane_states.z = track_pt_z.z;
 
-			plane_states.x = origin_pt.x;
-			plane_states.y = origin_pt.y;
-			plane_states.z = origin_pt.z; //Note: This always gives me the center of the plane window to the sensor origin. 
+			plane_states.x = - origin_pt.x;
+			plane_states.y = - origin_pt.y;
+			plane_states.z = - origin_pt.z; //Note: This always gives me the center of the plane window to the sensor origin. 
 		
 			plane_states.variance = plane_coefficients[3];
 		} else
