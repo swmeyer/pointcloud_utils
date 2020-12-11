@@ -315,6 +315,7 @@ void pointCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& msg)
 
 int main(int argc, char* argv[])
 {
+	//TODO: update with new parameters
 	ros::init(argc, argv, "distance_publisher");
 	ros::NodeHandle n_("~");
 	ros::NodeHandle n;
