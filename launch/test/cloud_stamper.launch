@@ -1,7 +1,0 @@
-<launch>
-    <node pkg="pointcloud_utils" type="add_time_stamp.py" name="cloud_stamper"
-          required="true" output="screen" cwd="node">
-         <param name="cloud_topic_in" value="/invz_topic_1" />
-         <param name="cloud_topic_out" value="/innoviz_points" />
-    </node>
-</launch> 

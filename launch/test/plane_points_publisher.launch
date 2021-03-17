@@ -1,20 +1,37 @@
 <launch>
     <node pkg="pointcloud_utils" type="plane_points_generator" name="plane_points_pub" required="true" output="screen">
-    	<param name="lidar_topic"	value="/points" />
-    	<param name="frame_id" 		value="lidar" />
-    	<param name="point_density" value="40"/>
-    	<param name="x_bound"		value="5"/>
-		<param name="y_bound"		value="5" />
-		<param name="z_height" 		value="1" />
-		<param name="roll"			value="0.1" /> #was 0.785398 (45 deg)
-		<param name="pitch" 		value="0.1" /> #was 0.785398
-		<param name="noise" 		value="0.025" />
-		<param name="pub_rate" 		value="10" />
-		<param name="rolling_sinusoid" 		value="true" />
-		<param name="pitching_sinusoid" 	value="true" />
-		<param name="sinusoid_roll_rate" value="5" />
-		<param name="sinusoid_pitch_rate" value="2" />
-		<param name="sinusoid_pitch_phase_shift" value="1" />
-		<param name="sinusoid_roll_phase_shift" value="0" />
+    	
+    	<param name="lidar_topic"					value="/points" />
+    	<param name="frame_id" 						value="lidar" />
+
+		<param name="pub_rate" 						value="10" />
+
+		# Static Plane Characteristics
+    	<param name="point_density" 				value="40"/>
+    	<param name="x_bound"						value="5"/>
+		<param name="y_bound"						value="5" />
+		<param name="z_height" 						value="1" />
+		<param name="roll"							value="0.1" /> #was 0.785398 (45 deg), then 0.1
+		<param name="pitch" 						value="0.1" /> #was 0.785398, then 0.1
+		<param name="noise" 						value="0.0" /> #was 0.025
+
+		<param name="incremental_angle_test" 		value="false" />
+		<param name="roll_increment"				value="0.008727" />
+		<param name="pitch_increment"				value="0.0" />
+	
+
+		# Axis Offsets (ypr)
+		<param name="yaw_offset"					value="0" /> #was 0.0174533
+		<param name="pitch_offset"  				value="0" />
+		<param name="roll_offset" 					value="0.1" />
+
+		# Motion
+		<param name="rolling_sinusoid" 				value="true" />
+		<param name="pitching_sinusoid" 			value="true" />
+		<param name="sinusoid_roll_rate" 			value="5" />
+		<param name="sinusoid_pitch_rate" 			value="5" /> #was 2
+		<param name="sinusoid_pitch_phase_shift" 	value="1" /> #was 1
+		<param name="sinusoid_roll_phase_shift" 	value="0" />
     </node>
+
 </launch> 

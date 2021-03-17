@@ -1,0 +1,17 @@
+<launch>
+	<arg name="in_topic" 		default="/invz_topic_1" />
+	<arg name="out_topic"		default="/innoviz_points" />
+	<arg name="delay"			default="0.0" />
+
+	<param name="/use_sim_time" value="true" />
+    <node pkg="pointcloud_utils" type="add_time_stamp.py" name="cloud_stamper"
+          required="true" output="screen" cwd="node">
+         <param name="cloud_topic_in" value="$(arg in_topic)" />
+         <param name="cloud_topic_out" value="$(arg out_topic)" />
+         <param name="average_delay"	value="$(arg delay)" />  -->#[s] was 0.032. TODO: re-check every time, as this likely changes with system performance
+
+         <!-- <param name="cloud_topic_in" value="/velodyne_points" />
+         <param name="cloud_topic_out" value="/velodyne_points_2" />
+         <param name="average_delay"	value="1696.6" /> --> #[s] was 0.032
+    </node>
+</launch> 

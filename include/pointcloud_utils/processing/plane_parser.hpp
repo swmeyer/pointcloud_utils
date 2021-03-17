@@ -97,7 +97,7 @@ namespace pointcloud_utils
 			float yaw_vel 	= 0;
 
 			float variance = 0.0;
-			std::vector<float> covariance_matrix; //Stored linearly in row-major order. Right now, for size reasons, only has z, roll, pitch
+			Eigen::MatrixXf covariance_matrix; //12x12, full state covariance
 		
 		};
 
@@ -112,7 +112,7 @@ namespace pointcloud_utils
 			float c;
 			float d;
 
-			std::vector<float> covariance_matrix; //Stored linearly in row-major order. a, b, c
+			Eigen::Matrix3f covariance_matrix; // a, b, c
 		};
 
 		enum pointValueIndex //used to specify which direction we expect this plane to be in
@@ -281,6 +281,7 @@ namespace pointcloud_utils
 		/**
 		 * @Function 	getPlaneStates
 		 * @param 		plane_coefficients - coefficients of the fitted plane equation, with variance
+		 * @param 		plane_parameters_covariance - vector holding row-major-order 3x3 covariance matrix for plane parameters a/d, b/d, c/d
 		 * @param 		plane_states - values representing planar position and orientation (to be found)
 		 * @Param 		search_window - bounds within which to process points
 		 * @param 		continue_from_last_plane - if true, updates tracked states using this plane fit
@@ -290,6 +291,7 @@ namespace pointcloud_utils
 		void getPlaneStates
 		(
 			const Eigen::Vector3f& plane_coefficients,
+			const Eigen::Matrix3f& plane_parameters_covariance,
 			PlaneParser::States& plane_states,
 			const pointcloud_utils::SearchWindow& search_window,
 			bool continue_from_last_plane
@@ -298,13 +300,14 @@ namespace pointcloud_utils
 		/**
 		 * @Function 	getPlaneOrientation
 		 * @Param 		plane_coefficients - vector of plane equation coefficients, a/d, b/d, c/d, with variance
+		 * @param 		orientation_covariance - covariance for the found angles
 		 * @param 		roll - roll angle of the plane (to be found)
 		 * @param 		pitch - pitch angle of the plane (to be found)
 		 * @param 		yaw - yaw angle of the plane (to be found)
 		 * @Return 		void
 		 * @Brief 		determines the orientation of the plane described by the given plane equation
 		 */
-		void getPlaneOrientation(const Eigen::Vector3f& plane_coefficients, double& roll, double& pitch, double& yaw, const float min_1, const float max_1, const float min_2, const float max_2);
+		void getPlaneOrientation(const Eigen::Vector3f& plane_coefficients, Eigen::Matrix3f& orientation_covariance, double& roll, double& pitch, double& yaw);
 
 
 		/**

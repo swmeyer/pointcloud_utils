@@ -51,10 +51,13 @@ namespace pointcloud_utils
 		const float intensity_max
 	)
 	{
+		if (cloud.size() < settings.min_points_to_fit)
+		{
+			std::cout << "Not enough points to fit plane\n";
+			return;
+		}
 		//Initialize the covariance matrix:
-		plane_parameters.covariance_matrix.resize(3*3);
-		std::memset( plane_parameters.covariance_matrix.data(), 0, sizeof(plane_parameters.covariance_matrix[0])*plane_parameters.covariance_matrix.size() );
-		
+		plane_parameters.covariance_matrix = Eigen::Matrix3f::Zero();
 		// convert to point vector
 		pointcloud_utils::convertFromPointCloud2(cloud_in, cloud);
 		
@@ -154,7 +157,7 @@ namespace pointcloud_utils
 
 		getCovariance(plane_parameters, least_squares_matricies);
 
-		getPlaneStates( least_squares_matricies.plane_coefficients, plane_states, search_window, continue_from_last_plane);
+		getPlaneStates( least_squares_matricies.plane_coefficients, plane_parameters.covariance_matrix, plane_states, search_window, continue_from_last_plane);
 
 		//std::cout << "Finished getting plane states\n";
 
@@ -271,6 +274,11 @@ namespace pointcloud_utils
 	
 		if (!settings.use_point_track_method)
 		{
+			if (cloud.size() < settings.min_points_to_fit)
+			{
+				std::cout << "Not enough points to fit plane\n";
+				return;
+			}
 			//std::cout << "Found ground points: " << ground_points.size() << "\n";
 			
 			//Plane fit over the ground point cluster!
@@ -405,6 +413,7 @@ namespace pointcloud_utils
 	/**
 	 * @Function 	getPlaneStates
 	 * @param 		plane_coefficients - coefficients of the fitted plane equation, with variance
+	 * @param 		plane_parameters_covariance - vector holding row-major-order 3x3 covariance matrix for plane parameters a/d, b/d, c/d
 	 * @param 		plane_states - values representing planar position and orientation (to be found)
 	 * @Param 		search_window - bounds within which to process points
 	 * @param 		continue_from_last_plane - if true, updates tracked states using this plane fit
@@ -414,14 +423,15 @@ namespace pointcloud_utils
 	void PlaneParser::getPlaneStates
 	(
 		const Eigen::Vector3f& plane_coefficients,
+		const Eigen::Matrix3f& plane_parameters_covariance,
 		PlaneParser::States& plane_states,
 		const pointcloud_utils::SearchWindow& search_window,
 		bool continue_from_last_plane
 	)
 	{
-		plane_states.covariance_matrix.resize(3*3);
-		std::memset( plane_states.covariance_matrix.data(), 0, sizeof(plane_states.covariance_matrix[0])*plane_states.covariance_matrix.size() );
-		//TODO: is there a way I can determine roll, pitch, yaw, x, y, z covariance from the plane fit variance of points from the plane?
+
+		plane_states.covariance_matrix = Eigen::MatrixXf::Zero(12, 12);
+				
 
 		if (plane_coefficients[0] == 0 && plane_coefficients[1] == 0 && plane_coefficients[2] == 0)
 		{
@@ -462,6 +472,10 @@ namespace pointcloud_utils
 			// track_pt_z.x = center_x;
 			// track_pt_z.y = center_y;
 			// track_pt_z.z = a_prime * track_pt.x + b_prime * track_pt.y + d_prime;
+			Eigen::Matrix3f translation_covariance = Eigen::Matrix3f::Zero();
+			Eigen::Matrix3f orientation_covariance = Eigen::Matrix3f::Zero();
+			Eigen::Matrix3f translation_rate_covariance = Eigen::Matrix3f::Zero();
+			Eigen::Matrix3f rotation_rate_covariance = Eigen::Matrix3f::Zero();
 
 			//Get translation at sensor origin!!
 			pointcloud_utils::pointstruct origin_pt; //NOTE: this is designed to work best for a nearly horizontal plane
@@ -472,6 +486,11 @@ namespace pointcloud_utils
 				origin_pt.x = 1 / plane_coefficients[0];
 				origin_pt.y = 1 / plane_coefficients[1];
 				origin_pt.z = 1 / plane_coefficients[2];
+
+				//TODO: confirm error propogation: 
+				//translation_covariance = plane_parameters_covariance.inverse(); //TODO: I am not convinced of this logic. Let's just use the plane parameters covariance?
+
+				translation_covariance = plane_parameters_covariance;
 
 				if (std::isnan(origin_pt.x) || std::isinf(origin_pt.x)) origin_pt.x = 0;
 				if (std::isnan(origin_pt.y) || std::isinf(origin_pt.y)) origin_pt.y = 0;				
@@ -495,8 +514,9 @@ namespace pointcloud_utils
 				origin_pt.x = scale * plane_coefficients[0];
 				origin_pt.y = scale * plane_coefficients[1];
 				origin_pt.z = scale * plane_coefficients[2];
-			}
 
+				translation_covariance = scale * plane_parameters_covariance;
+			}
 
 			//if (std::isinf(origin_pt.x)) origin_pt.x = 0;
 			//if (std::isinf(origin_pt.y)) origin_pt.y = 0;
@@ -506,7 +526,7 @@ namespace pointcloud_utils
 			//std::cout << "origin pt: " << origin_pt.x << "\n";
 			//Get orientation of the plane:
 			double roll, pitch, yaw;
-			getPlaneOrientation(plane_coefficients, roll, pitch, yaw, -1, 1, -1, 1 );
+			getPlaneOrientation(plane_coefficients, orientation_covariance, roll, pitch, yaw);
 			double elapsed_time = (this_state_time - last_state_time);
 			if (elapsed_time != 0 && continue_from_last_plane)
 			{
@@ -515,7 +535,8 @@ namespace pointcloud_utils
 				plane_states.roll_vel = (roll - plane_states.roll) / elapsed_time;
 				plane_states.pitch_vel = (pitch - plane_states.pitch) / elapsed_time;
 				plane_states.yaw_vel = (yaw - plane_states.yaw_vel) / elapsed_time;
-				//TODO: track vel in all orientations
+
+				rotation_rate_covariance = orientation_covariance; //TODO: not convinced of this
 
 				//std::cout << "Elapsed time: " << elapsed_time << "\n";
 				//Find relative motion of track point:
@@ -526,6 +547,18 @@ namespace pointcloud_utils
 				plane_states.x_vel = (origin_pt.x - tracked_plane_states.x) / elapsed_time;
 				plane_states.y_vel = (origin_pt.y - tracked_plane_states.y) / elapsed_time;
 				plane_states.z_vel = (origin_pt.z - tracked_plane_states.z) / elapsed_time;
+
+				translation_rate_covariance = translation_covariance; //TODO: not convinced of this
+			}
+
+			//TODO: if goodness of fit, use the variance for all covariance values
+			if (settings.covariance_type == PlaneParser::CovarianceType::GOODNESS_OF_FIT_ERROR ||
+				settings.covariance_type == PlaneParser::CovarianceType::GOODNESS_OF_FIT_DISTANCE)
+			{
+				translation_covariance = Eigen::Matrix3f::Identity() * plane_parameters_covariance(0,0); //Set diagonals to the variance
+				translation_rate_covariance = translation_covariance;
+				orientation_covariance = translation_covariance;
+				rotation_rate_covariance = translation_covariance;
 			}
 	
 			plane_states.roll = roll;
@@ -539,64 +572,41 @@ namespace pointcloud_utils
 			plane_states.x = - origin_pt.x;
 			plane_states.y = - origin_pt.y;
 			plane_states.z = - origin_pt.z; //Note: This always gives me the center of the plane window to the sensor origin. 
+
+			Eigen::Matrix3f zeros = Eigen::Matrix3f::Zero();
 		
-			plane_states.variance = plane_coefficients[3];
+			//plane_states.variance = plane_coefficients[3];
+			plane_states.variance = translation_covariance(0,0);
+			Eigen::MatrixXf row1(3, 12);
+			Eigen::MatrixXf row2(3, 12);
+			Eigen::MatrixXf row3(3, 12);
+			Eigen::MatrixXf row4(3, 12);
+
+			row1 = translation_covariance, zeros, zeros, zeros;
+			row2 = zeros, orientation_covariance, zeros, zeros;
+			row3 = zeros, zeros, translation_rate_covariance, zeros;
+			row4 = zeros, zeros, zeros, rotation_rate_covariance, zeros;
+
+			plane_states.covariance_matrix = row1, row2, row3, row4; //TODO: check this initialization sequence
+
 		} else
 		{
 			std::cout << "Warning! Point track method has not yet been implemented\n";
-
-			//find planar orientation
-			// double roll, pitch, yaw;
-			// getPlaneOrientation(plane_coefficients, roll, pitch, yaw, plane_direction, -1, 1, -1, 1 );
-
-			// //https://math.stackexchange.com/questions/2249307/orientation-of-a-3d-plane-using-three-points
-			// 
-			// //TODO: solve a least squares over the three points:
-			// // A = [p1, p2, p3]^T << column points
-			// // An = [1 1 1]^T, solve for n (normal vector)
-			// // normalize n
-			// //Project n onto each of x, y, z planes:
-			// // v = u - n(n^Tu) (x plane, u = [1 0 0]^T), cos(angle) = v
-
-			//TODO: we will need a specific point sent in from the cloud to track translation here
-
-			// if (track_point_found)
-			// {
-			// 	double elapsed_time = (this_state_time.toSec() - last_state_time.toSec());
-			// 	if (elapsed_time != 0 && continue_from_last_plane)
-			// 	{
-			// 		//std::cout << "Elapsed time: " << elapsed_time << "\n";
-			// 		//Find relative motion of track point:
-			// 		plane_states.x_vel = (track_pt.x - tracked_plane_states.x) / elapsed_time;
-			// 		plane_states.y_vel = (track_pt.y - tracked_plane_states.y) / elapsed_time;
-			// 		plane_states.z_vel = (track_pt.z - tracked_plane_states.z) / elapsed_time;
-			// 	}
-		// 
-			// 	plane_states.x = track_pt.x;
-			// 	plane_states.y = track_pt.y;
-			// 	plane_states.z = track_pt.z;
-		// 
-			// 	//std::cout << "Track point position: " << track_pt.x << ", " << track_pt.y << ", " << track_pt.z << "\n";
-			// }
-		}
-
-		if (continue_from_last_plane)
-		{
-			last_state_time = this_state_time;
-			tracked_plane_states = plane_states;
 		}
 	}
 
+	
 	/**
 	 * @Function 	getPlaneOrientation
 	 * @Param 		plane_coefficients - vector of plane equation coefficients, a/d, b/d, c/d, with variance
+	 * @param 		orientation_covariance - covariance for the found angles
 	 * @param 		roll - roll angle of the plane (to be found)
 	 * @param 		pitch - pitch angle of the plane (to be found)
 	 * @param 		yaw - yaw angle of the plane (to be found)
 	 * @Return 		void
 	 * @Brief 		determines the orientation of the plane described by the given plane equation
 	 */
-	void PlaneParser::getPlaneOrientation(const Eigen::Vector3f& plane_coefficients, double& roll, double& pitch, double& yaw, const float min_1, const float max_1, const float min_2, const float max_2)
+	void PlaneParser::getPlaneOrientation(const Eigen::Vector3f& plane_coefficients, Eigen::Matrix3f& orientation_covariance, double& roll, double& pitch, double& yaw)
 	{
 		//TODO: get quaternion and break down into roll, pitch, yaw instead?
 
@@ -678,6 +688,9 @@ namespace pointcloud_utils
 		// /		//TODO: maintain a smooth motion of normal as we move past axes
 		// /	}
 		//}
+
+		//Covariance linearization: http://www-labs.iro.umontreal.ca/~mignotte/IFT2425/Documents/EfficientApproximationArctgFunction.pdf for atan, https://socratic.org/questions/how-do-you-find-the-linearization-of-y-sin-1x-at-a-1-4 for asin
+		// NOTE: neither atan nor asin are nicely linearized, so linearization for error propagation is unreasonable to attempt, if not impossible
 
 		switch (settings.angle_solution_type)
 		{
@@ -762,58 +775,54 @@ namespace pointcloud_utils
 	 */
 	void PlaneParser::getCovariance(PlaneParser::PlaneParameters& plane_parameters, const PlaneParser::LeastSquaresMatricies& matricies)
 	{
+		plane_parameters.covariance_matrix = Eigen::Matrix3f::Zero();
 		Eigen::VectorXf residual = matricies.points_matrix * matricies.plane_coefficients - matricies.sum_vector;
 		switch(settings.covariance_type)
 		{
 			case (pointcloud_utils::PlaneParser::CovarianceType::GOODNESS_OF_FIT_ERROR):
 			{
+				//std::cout << "getting goodness of fit error covariance\n";
 				float plane_fit_relative_error   = residual.norm() / matricies.sum_vector.norm(); //Norm is L2 norm, output is "relative error"
 				//https://eigen.tuxfamily.org/dox/group__TutorialLinearAlgebra.html
 				//(L2 norm IS standard deviation without an extra averaging term, and variance is standard deviation squared) -https://winderresearch.com/workshops/171027_standard_deviation/
 				// So, plane_fit_relative_error is essentially standard deviation of the data
 				//float plane_fit_relative_error   = (points_matrix * plane_coefficients - sum_vector).norm();
 
-				float variance = std::pow(plane_fit_relative_error, 2);
+				float variance = std::pow(plane_fit_relative_error, 2) * 1000;
 
 				plane_parameters.variance = variance;
 
-				plane_parameters.covariance_matrix[0*3+0] = variance;
-				plane_parameters.covariance_matrix[1*3+1] = variance;
-				plane_parameters.covariance_matrix[2*3+2] = variance;
+				plane_parameters.covariance_matrix(0,0) = variance;
+				plane_parameters.covariance_matrix(1,1) = variance;
+				plane_parameters.covariance_matrix(2,2) = variance;
 				break;
 			}
 			case (pointcloud_utils::PlaneParser::CovarianceType::GOODNESS_OF_FIT_DISTANCE):
 			{
+				//std::cout << "getting goodness of fit distance covariance\n";
+				
 				//To make it more like a distance to plane: https://mathinsight.org/distance_point_plane
+				//std::cout << "Residual: \n";
+				//std::cout << residual << "\n";
 				float plane_fit_relative_error   = (residual.norm() / matricies.plane_coefficients.norm()) / matricies.points_matrix.rows();
-				float variance = std::pow(plane_fit_relative_error, 2);
+				float variance = std::pow(plane_fit_relative_error, 2) * 1000000;
 
 				plane_parameters.variance = variance;
 
-				plane_parameters.covariance_matrix[0*3+0] = variance;
-				plane_parameters.covariance_matrix[1*3+1] = variance;
-				plane_parameters.covariance_matrix[2*3+2] = variance;
+				plane_parameters.covariance_matrix(0,0) = variance;
+				plane_parameters.covariance_matrix(1,1) = variance;
+				plane_parameters.covariance_matrix(2,2) = variance;
 				break;
 			}
 			case (pointcloud_utils::PlaneParser::CovarianceType::ANALYTICAL):
 			{
-				std::cout << "Warning: Analytical covariance has not yet been implemented.\n";
+				std::cout << "Warning: Analytical covariance has not yet been fully implemented due to difficulties linearizing the plane-to-state equations.\n";
 				//Get sigma squared:
 				float sigma_2 = residual.transpose() * residual;
 				//Get X'X: 
 				Eigen::Matrix3f multiplyer = (matricies.points_matrix.transpose() * matricies.points_matrix).inverse();
 				
-				Eigen::Matrix3f covariance = sigma_2 * multiplyer;
-
-				plane_parameters.covariance_matrix[0*3+0] = covariance(0);
-				plane_parameters.covariance_matrix[0*3+1] = covariance(1);
-				plane_parameters.covariance_matrix[0*3+2] = covariance(2);
-				plane_parameters.covariance_matrix[1*3+0] = covariance(3);
-				plane_parameters.covariance_matrix[1*3+1] = covariance(4);
-				plane_parameters.covariance_matrix[1*3+2] = covariance(5);
-				plane_parameters.covariance_matrix[2*3+0] = covariance(6);
-				plane_parameters.covariance_matrix[2*3+1] = covariance(7);
-				plane_parameters.covariance_matrix[2*3+2] = covariance(8);
+				plane_parameters.covariance_matrix = sigma_2 * multiplyer;
 					
 				break;
 			}
@@ -827,6 +836,19 @@ namespace pointcloud_utils
 				//Should not get here
 			}
 		}
+
+		//TODO: add covariance terms to the value print-out
+		//std::cout << "Plane states covariance: \n";
+		//std::cout << plane_parameters.covariance_matrix << "\n";
+		//std::cout << plane_parameters.covariance_matrix(0,0) << ", "
+		//		  << plane_parameters.covariance_matrix(0,1) << ", "
+		//		  << plane_parameters.covariance_matrix(0,2) << ", "
+		//		  << plane_parameters.covariance_matrix(1,0) << ", "
+		//		  << plane_parameters.covariance_matrix(1,1) << ", "
+		//		  << plane_parameters.covariance_matrix(1,2) << ", "
+		//		  << plane_parameters.covariance_matrix(2,0) << ", "
+		//		  << plane_parameters.covariance_matrix(2,1) << ", "
+		//		  << plane_parameters.covariance_matrix(2,2) << ", \n";
 	}
 
 } //end namespace pointcloud_utils
