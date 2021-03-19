@@ -119,6 +119,10 @@ add_executable(plane_points_generator src/test/plane_points_generator.cpp)
 add_dependencies(plane_points_generator ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(plane_points_generator ${catkin_LIBRARIES})
 
+add_executable(imu_to_euler src/test/imu_to_euler.cpp)
+add_dependencies(imu_to_euler ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(imu_to_euler ${catkin_LIBRARIES})
+
 #############
 ## INSTALL ##
 #############

@@ -3,7 +3,7 @@
 	<arg name="out_topic"		default="/innoviz_points" />
 	<arg name="delay"			default="0.0" />
 
-	<param name="/use_sim_time" value="true" />
+	<!--<param name="/use_sim_time" value="true" /> -->
     <node pkg="pointcloud_utils" type="add_time_stamp.py" name="cloud_stamper"
           required="true" output="screen" cwd="node">
          <param name="cloud_topic_in" value="$(arg in_topic)" />
