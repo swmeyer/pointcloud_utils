@@ -1,10 +1,14 @@
 <launch>
-    <node pkg="pointcloud_utils" type="intensity_filter" name="intensity_filter"
+	<arg name="intensity_min" default="0" />
+	<arg name="intensity_max" default="256" />
+	<arg name="cloud_in_topic" default="/velodyne_points" />
+	<arg name="cloud_out_topic" default="/filtered_points" />
+
+    <node pkg="pointsensor_positional_processing" type="intensity_filter_node" name="intensity_filter"
           required="true" output="screen" cwd="node">
-         <!-- <param name="cloud_topic_in" value="/invz_topic_1" /> -->
-         <param name="cloud_topic_in" value="/velodyne_points" />
-         <param name="cloud_topic_out" value="/filtered_points" />
-         <param name="intensity_min" value="70" />
-         <param name="intensity_max" value="110" />
+         <param name="cloud_topic_in" value="/$(arg cloud_in_topic)" />
+         <param name="cloud_topic_out" value="$(arg cloud_out_topic)" />
+         <param name="intensity_min" value="$(arg intensity_min)" />
+         <param name="intensity_max" value="$(arg intensity_max)" />
     </node>
 </launch> 

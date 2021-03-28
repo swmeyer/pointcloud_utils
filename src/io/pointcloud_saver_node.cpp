@@ -65,5 +65,8 @@ int main(int argc, char* argv[])
     }
 
 	ros::spin();
+
+	pc_saver.saveTimesToFile();
+
 	return(0);
 }

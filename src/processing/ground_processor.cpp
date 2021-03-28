@@ -54,8 +54,9 @@ namespace pointcloud_utils
 		//detect ground
 		PlaneParser::PlaneParameters plane_parameters;
 		PlaneParser::States plane_states;
+		//std::cout << "Detecting ground\n";
 		detectGround(cloud_in, cloud, plane_parameters, plane_states);
-
+		//std::cout << "Done detecting ground\n";
 		this->current_cloud = cloud;
 		this->plane_parameters = plane_parameters;
 		this->plane_states = plane_states;

@@ -37,14 +37,25 @@ public:
 	 */
 	void setCurrentCloud(const sensor_msgs::PointCloud2::ConstPtr& cloud);
 
+	/**
+ 	 * @Function 	saveTimesToFile
+ 	 * @Param 		none
+ 	 * @Return 		void
+ 	 * @Brief 		Saves the time array to a default file
+ 	 */
+	void saveTimesToFile();
+
 private:
 	std::string     input_topic;		//topic for the cloud to save
 	ros::NodeHandle n; 					//node handle for subscription
-	unsigned char 	filename_counter; 	//increments the save file name
+	unsigned int 	filename_counter; 	//increments the save file name
 	std::string 	filename_base; 		//base of the save file name
 	std::string 	file_extension; 	//"." extension type of the save file
 	ros::Subscriber cloud_sub;  		//subscriber for the cloud to save
 	std::mutex 		save_mutex; 		//protects the current write function from being interrupted
+
+	std::vector<ros::Time> times; 		//holds the times for all files processed so far
+	std::string time_file_name;			//Default name for the times file
 
 	typedef struct
 	{
@@ -70,7 +81,7 @@ private:
 
 	/**
  	 * @Function 	savePointsToFile
- 	 * @Param 		cloud - cloud to save to
+ 	 * @Param 		cloud - cloud to save
  	 * @Return 		void
  	 * @Brief 		Saves the given cloud to a default file with an incremented counter in the name
  	 */

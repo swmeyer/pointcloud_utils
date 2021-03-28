@@ -118,6 +118,8 @@ void publishImage()
 	grid_parser->getSettings(settings);
 	grid_parser->getGridBytes(grid_bytes);
 
+	std::cout << "Grid bytes acquired.\n";
+
 	//Make message
 	sensor_msgs::Image msg;
 	msg.header = header;
@@ -132,11 +134,16 @@ void publishImage()
 	{
 		std::cout << "Warning: Expected and actual number of grid cells do not match: " << expected_cell_cout << " vs " << grid_bytes.size() << "\n";
 	}
+
+	std::cout << "Copying data into image msg\n";
 	//int byte_size = settings.map_width * settings.map_height * sizeof(grid_bytes[0]);
-	int byte_size = grid_bytes.size() * sizeof(grid_bytes[0]);
+	//int byte_size = grid_bytes.size() * sizeof(grid_bytes[0]); //This is dumb, right?
+	int byte_size = grid_bytes.size();
 	msg.data.resize(byte_size);
+	std::cout << "Copy size: " << byte_size << "\n";
 	memcpy(&(msg.data[0]), &(grid_bytes[0]), byte_size);
 
+	std::cout << "Doing the publishing now:\n";
 	image_pub.publish(msg);
 
 	//TODO: publish a compressed image instead
@@ -188,6 +195,7 @@ void reconfigureCallback(pointcloud_utils::PointCloudUtilsConfig &config, uint32
  */
 void pointCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& msg)
 {
+	std::cout << "Recieving new point cloud\n";
 	header = msg->header;
 	if (header.stamp.toSec() == 0)
 	{
@@ -209,13 +217,15 @@ void pointCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& msg)
 	if (settings.use_shell_pointstruct)
 	{
 		grid_parser->updateCloud<pointcloud_utils::simplePointstruct>(msg, grid_bytes, map_grid_bytes);
+		std::cout << "Just returned\n";
 	} else
 	{
 		grid_parser->updateCloud<pointcloud_utils::pointstruct>(msg, grid_bytes, map_grid_bytes);
 	}
-	std::cout << "Grid updated\n";
+	std::cout << "Grid updated.\n";
 
 	publishImage();
+	std::cout << "Cycle done\n";
 	//publishMap();
 }
 

@@ -4,5 +4,8 @@
         <param name="cloud_topic" 		value="/velodyne_points" />
         <param name="filename_base" 	value="$(find pointcloud_utils)/points/points" />
         <param name="file_extension" 	value=".csv"   />
+
+        <param name="parse_from_bag" value="true"/>
+        <param name="bagfile" value="/home/winston/Documents/ws/280_lidar_run1_2019-09-17-10-34-08.bag" />
     </node>
 </launch>

@@ -13,6 +13,7 @@ PointCloudSaver::PointCloudSaver(std::string topic, std::string filename, std::s
 	this->n = n;
 	this->filename_base = filename;
 	this->file_extension = file_extension;
+	this->time_file_name = "times";
 	setIntputTopic(topic);
 }
 
@@ -49,6 +50,47 @@ void PointCloudSaver::setCurrentCloud(const sensor_msgs::PointCloud2::ConstPtr& 
 
 	//call save to file
 	savePointsToFile(cloud2);
+
+	this->times.push_back(cloud->header.stamp);
+}
+
+/**
+ * @Function 	saveTimesToFile
+ * @Param 		none
+ * @Return 		void
+ * @Brief 		Saves the time array to a default file
+ */
+void PointCloudSaver::saveTimesToFile()
+{
+	//prepare file name
+	std::stringstream sstream;
+	sstream << filename_base << "_" << time_file_name << file_extension;
+	std::string filename = sstream.str();
+
+	//Open file
+	std::ofstream file;
+	file.open(filename);
+
+	if (file.is_open())
+	{
+		std::cout << "Saving to file: " << filename << "\n";
+		//Write to file
+		if (file_extension == ".csv")
+		{
+			file << "time_s\n"; //headers for csv
+			for (ros::Time time : this->times)
+			{
+				file << time << ",\n";
+			}
+		} else
+		{
+			std::cout << "Filetype not suppported: " << file_extension << "\n";
+		}
+		
+	} else
+	{
+		std::cout << "Could not open file: " << filename << "\n";
+	}
 }
 
 /**
@@ -66,6 +108,8 @@ void PointCloudSaver::pointCloudCallback(const sensor_msgs::PointCloud2::ConstPt
 
 	//call save to file
 	savePointsToFile(cloud);
+
+	this->times.push_back(msg->header.stamp);
 }
 
 /**

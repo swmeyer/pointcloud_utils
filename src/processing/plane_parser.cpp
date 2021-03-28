@@ -721,23 +721,37 @@ namespace pointcloud_utils
 			}
 			case (PlaneParser::AngleSolutionType::EULER_ANGLES):
 			{
-				//TODO: define YPR as the order, and solve for the successive rotations (yaw is zero here)
-				yaw = 0;
-				pitch = std::atan2(normal[0], normal[2]); //angle of plane normal about world y axis, 0 at z axis (horizontal)
-				//TODO: find roll about new x axis
-				//Rotate normal by pitch and yaw:
+				// //TODO: define YPR as the order, and solve for the successive rotations (yaw is zero here)
+				// yaw = 0;
+				// pitch = std::atan2(normal[0], normal[2]); //angle of plane normal about world y axis, 0 at z axis (horizontal)
+				// //TODO: find roll about new x axis
+				// //Rotate normal by pitch and yaw:
+				// Eigen::Matrix3f rotation_matrix;
+				// //std::cout << "Pitch: " << pitch << "\n";
+				// rotation_matrix << std::cos(pitch),  0, -std::sin(pitch),
+				// 				   0, 				    1, 0,
+				// 				   std::sin(pitch), 0, std::cos(pitch);
+		// 
+				// Eigen::Vector3f new_normal = rotation_matrix * normal;
+		// 
+		// 
+				// //std::cout << "New normal: " << new_normal[0] << ", " << new_normal[1] << ", " << new_normal[2] << "\n";
+				// roll = - std::atan2(new_normal[1], new_normal[2]); //angle of plane normal about new x axis, with 0 at new z
+				// //std::cout << "roll: " << roll << "\n";
+				// break;
+
+				//Try RPY (Plane to body?)
+				roll = - std::atan2(normal[1], normal[2]);
 				Eigen::Matrix3f rotation_matrix;
-				//std::cout << "Pitch: " << pitch << "\n";
-				rotation_matrix << std::cos(pitch),  0, std::sin(pitch),
-								   0, 				    1, 0,
-								   -std::sin(pitch), 0, std::cos(pitch);
-		
+				rotation_matrix << 1, 0,               0,
+								   0, std::cos(roll), -std::sin(roll),
+								   0, std::sin(roll),  std::cos(roll);
+
 				Eigen::Vector3f new_normal = rotation_matrix * normal;
-		
-		
-				//std::cout << "New normal: " << new_normal[0] << ", " << new_normal[1] << ", " << new_normal[2] << "\n";
-				roll = - std::atan2(new_normal[1], new_normal[2]); //angle of plane normal about new x axis, with 0 at new z
-				//std::cout << "roll: " << roll << "\n";
+
+				pitch = std::atan2(new_normal[0], new_normal[2]);
+
+				yaw = 0;
 				break;
 			}
 			case (PlaneParser::AngleSolutionType::SIMPLE_ANGLES):

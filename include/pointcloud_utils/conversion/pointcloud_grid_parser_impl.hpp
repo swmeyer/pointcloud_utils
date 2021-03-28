@@ -44,7 +44,7 @@ namespace pointcloud_utils
 		{
 			parseGrid<T>(cloud, grid, first);
 		}
-		std::cout << "Finsihed parsing into grid\n";
+		std::cout << "Finished parsing into grid\n";
 	
 		//std::cout << "grid: \n" << grid << "\n\n"; 
 	
@@ -55,8 +55,13 @@ namespace pointcloud_utils
 
 		grid_image.clear();
 		map.clear();
+		std::cout << "Setting grid bytes\n";
+		grid_image.resize(this->grid_bytes.size());
 		grid_image = this->grid_bytes;
-		map = this->map_grid_bytes;
+		std::cout << "Note: Map bytes not saved\n";
+		//std::cout << "Setting map bytes\n";
+		//map.resize(this->map_grid_bytes.size());
+		//map = this->map_grid_bytes;
 	}
 
 	/**
@@ -154,20 +159,20 @@ namespace pointcloud_utils
 		std::cout << "determined map params\n";
 
 		//reset map -------------------------------------------------
-		if ((initialize && settings.use_first) || (!settings.use_first))
-		{
+		//if ((initialize && settings.use_first) || (!settings.use_first))
+		//{
 			//std::cout << "Map height, width: " << map_height << ", " << map_width << "\n";
 			grid = Eigen::MatrixXf::Zero(settings.map_height, settings.map_width);
 			//grid_bytes.resize(settings.map_height * settings.map_width);
 			//map_grid_bytes.resize(settings.map_height * settings.map_width);
 			grid_bytes = std::vector<uint8_t>(settings.map_height * settings.map_width, 0);
 			map_grid_bytes = std::vector<uint8_t>(settings.map_height * settings.map_width, 0);
-		} else
-		{
-			grid = Eigen::MatrixXf::Zero(grid.rows(), grid.cols());
-			grid_bytes = std::vector<uint8_t>(grid_bytes.size(), 0);
-			map_grid_bytes = std::vector<uint8_t>(map_grid_bytes.size(), 0);
-		}
+		//} else
+		//{
+		//	grid = Eigen::MatrixXf::Zero(grid.rows(), grid.cols());
+		//	grid_bytes = std::vector<uint8_t>(grid_bytes.size(), 0);
+		//	map_grid_bytes = std::vector<uint8_t>(map_grid_bytes.size(), 0);
+		//}
 	
 		int skip_count = 0;
 		int pass_count = 0;
