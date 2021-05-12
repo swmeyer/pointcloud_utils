@@ -56,10 +56,14 @@ namespace pointcloud_utils
 		grid_image.clear();
 		map.clear();
 		std::cout << "Setting grid bytes\n";
-		grid_image.resize(this->grid_bytes.size());
-		grid_image = this->grid_bytes;
-		std::cout << "Note: Map bytes not saved\n";
-		//std::cout << "Setting map bytes\n";
+		for (int i = 0; i < grid_bytes.size(); i++)
+		{
+			grid_image.push_back(grid_bytes[i]);
+		}
+		//grid_image.resize(this->grid_bytes.size());
+		//grid_image = this->grid_bytes;
+		//std::cout << "Note: Map bytes not saved\n";
+		////std::cout << "Setting map bytes\n";
 		//map.resize(this->map_grid_bytes.size());
 		//map = this->map_grid_bytes;
 	}
@@ -139,6 +143,7 @@ namespace pointcloud_utils
 			}
 			case(HOLD_ALL):
 			{
+				std::cout << "Not changing any parameters\n";
 				break;
 			}
 		}
@@ -158,6 +163,11 @@ namespace pointcloud_utils
 		determineMapParams<T>(cloud, initialize);
 		std::cout << "determined map params\n";
 
+
+		std::cout << "resolution: " << settings.resolution << "\n";
+		std::cout << "Map size: " << settings.map_width << "\n";
+
+
 		//reset map -------------------------------------------------
 		//if ((initialize && settings.use_first) || (!settings.use_first))
 		//{
@@ -165,6 +175,8 @@ namespace pointcloud_utils
 			grid = Eigen::MatrixXf::Zero(settings.map_height, settings.map_width);
 			//grid_bytes.resize(settings.map_height * settings.map_width);
 			//map_grid_bytes.resize(settings.map_height * settings.map_width);
+			grid_bytes.clear();
+			map_grid_bytes.clear();
 			grid_bytes = std::vector<uint8_t>(settings.map_height * settings.map_width, 0);
 			map_grid_bytes = std::vector<uint8_t>(settings.map_height * settings.map_width, 0);
 		//} else
@@ -213,7 +225,8 @@ namespace pointcloud_utils
 	
 			//i = (1 - (pt.x - x_min) / (map_height * resolution)) * map_height;
 			//j = (1 - (pt.y - y_min) / (map_width * resolution)) * map_width;
-	
+			
+
 			if (settings.centered_x && settings.centered_y)
 			{
 				//TODO: should these be negative pt.x and pt.y, or not??
@@ -244,6 +257,7 @@ namespace pointcloud_utils
 	
 				if (settings.make_binary_map)
 				{
+					//Populate this cell wtih a full "on" value
 					map_grid_bytes[settings.map_width * (settings.map_height - i) + (settings.map_width - j)] = 255;
 					grid_bytes[settings.map_width * i + j] = 255;
 				} else
@@ -290,23 +304,28 @@ namespace pointcloud_utils
 		determineMapParams<T>(cloud, initialize);
 
 		//intialize grid -------------------------------------------------
-		if ((initialize && settings.use_first) || (!settings.use_first))
-		{
+		//if ((initialize && settings.use_first) || (!settings.use_first))
+		//{
 			//std::cout << "Map height, width: " << map_height << ", " << map_width << "\n";
 			grid = Eigen::MatrixXf::Constant(settings.map_height, settings.map_width, pointcloud_utils::costmapValues::UNKNOWN);
 			//grid_bytes.resize(settings.map_height * settings.map_width);
 			//map_grid_bytes.resize(settings.map_height * settings.map_width);
+			grid_bytes.clear();
+			map_grid_bytes.clear();
 			grid_bytes = std::vector<uint8_t>(settings.map_height * settings.map_width, pointcloud_utils::costmapValues::UNKNOWN);
 			map_grid_bytes = std::vector<uint8_t>(settings.map_height * settings.map_width, pointcloud_utils::costmapValues::UNKNOWN);
-		} else
-		{
-			grid = Eigen::MatrixXf::Constant(grid.rows(), grid.cols(), pointcloud_utils::costmapValues::UNKNOWN);
-			grid_bytes = std::vector<uint8_t>(grid_bytes.size(), pointcloud_utils::costmapValues::UNKNOWN);
-			map_grid_bytes = std::vector<uint8_t>(map_grid_bytes.size(), pointcloud_utils::costmapValues::UNKNOWN);
-		}
+		//} else
+		//{
+		//	grid = Eigen::MatrixXf::Constant(grid.rows(), grid.cols(), pointcloud_utils::costmapValues::UNKNOWN);
+		//	grid_bytes = std::vector<uint8_t>(grid_bytes.size(), pointcloud_utils::costmapValues::UNKNOWN);
+		//	map_grid_bytes = std::vector<uint8_t>(map_grid_bytes.size(), pointcloud_utils::costmapValues::UNKNOWN);
+		//}
 
 		std::vector<pointcloud_utils::polarPointstruct> minimal_polar_cloud;
 		std::vector<pointcloud_utils::simplePointstruct> minimal_cartesian_cloud;
+
+		std::cout << "resolution: " << settings.resolution << "\n";
+		std::cout << "Map size: " << settings.map_width << "\n";
 
 		int skip_count = 0;
 		int pass_count = 0;

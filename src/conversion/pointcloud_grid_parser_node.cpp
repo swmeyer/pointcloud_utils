@@ -195,7 +195,7 @@ void reconfigureCallback(pointcloud_utils::PointCloudUtilsConfig &config, uint32
  */
 void pointCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& msg)
 {
-	std::cout << "Recieving new point cloud\n";
+	std::cout << "\nRecieving new point cloud\n";
 	header = msg->header;
 	if (header.stamp.toSec() == 0)
 	{
@@ -285,6 +285,7 @@ int main(int argc, char* argv[])
 	n_.param<std::string>("bagfile", bagfile_name, "points.bag");
 
 	n_.param<double>("map_resolution", settings.resolution, 0.5);
+	std::cout << "Initial resolution: " << settings.resolution << "\n";
 	n_.param<int>("map_width", settings.map_width, 512);
 	n_.param<int>("map_height", settings.map_height, 512);
 
@@ -358,43 +359,46 @@ int main(int argc, char* argv[])
     	
     	for(rosbag::MessageInstance const m: rosbag::View(bag, rosbag::TopicQuery(lidar_topic)))
     	{
-    	  sensor_msgs::PointCloud2::ConstPtr i = m.instantiate<sensor_msgs::PointCloud2>();
-    	  if (i != nullptr)
+    	  sensor_msgs::PointCloud2::ConstPtr msg = m.instantiate<sensor_msgs::PointCloud2>();
+    	  if (msg != nullptr)
     	  {
     	    if (!ros::ok())
     	    {
     	        break;
     	    }
-    	    
-    	    header = i->header;
-			if (header.stamp.toSec() == 0)
-			{
-				header.stamp = ros::Time::now();
-			}
-		
-			header.frame_id = base_frame;
-			// if (has_new_params)
-			// {
-			// 	//map_width = new_map_width;
-			// 	//map_height = new_map_height;
-			// 	resolution = new_resolution;
-			// 	value_scale_min = new_value_scale_min;
-			// 	value_scale_max = new_value_scale_max;
-			// 	has_new_params = false;
-			// 	first = true;
-			// }
-			std::cout << "new cloud from file.\n";
-			if (settings.use_shell_pointstruct)
-			{
-				grid_parser->updateCloud<pointcloud_utils::simplePointstruct>(i, grid_bytes, map_grid_bytes);
-			} else
-			{
-				grid_parser->updateCloud<pointcloud_utils::pointstruct>(i, grid_bytes, map_grid_bytes);
-			}
-			std::cout << "Grid updated\n";
-		
-			publishImage();
-			//publishMap();
+
+    	    	std::cout << "\nRecieving new point cloud\n";
+				header = msg->header;
+				if (header.stamp.toSec() == 0)
+				{
+					header.stamp = ros::Time::now();
+				}
+			
+				header.frame_id = base_frame;
+				// if (has_new_params)
+				// {
+				// 	//map_width = new_map_width;
+				// 	//map_height = new_map_height;
+				// 	resolution = new_resolution;
+				// 	value_scale_min = new_value_scale_min;
+				// 	value_scale_max = new_value_scale_max;
+				// 	has_new_params = false;
+				// 	first = true;
+				// }
+				std::cout << "new cloud received.\n";
+				if (settings.use_shell_pointstruct)
+				{
+					grid_parser->updateCloud<pointcloud_utils::simplePointstruct>(msg, grid_bytes, map_grid_bytes);
+					std::cout << "Just returned\n";
+				} else
+				{
+					grid_parser->updateCloud<pointcloud_utils::pointstruct>(msg, grid_bytes, map_grid_bytes);
+				}
+				std::cout << "Grid updated.\n";
+			
+				publishImage();
+				std::cout << "Cycle done\n";
+				//publishMap();
     	  }
     	}
 

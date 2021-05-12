@@ -741,7 +741,7 @@ namespace pointcloud_utils
 				// break;
 
 				//Try RPY (Plane to body?)
-				roll = - std::atan2(normal[1], normal[2]);
+				roll = std::atan2(-normal[1], -normal[2]);
 				Eigen::Matrix3f rotation_matrix;
 				rotation_matrix << 1, 0,               0,
 								   0, std::cos(roll), -std::sin(roll),
@@ -749,7 +749,7 @@ namespace pointcloud_utils
 
 				Eigen::Vector3f new_normal = rotation_matrix * normal;
 
-				pitch = std::atan2(new_normal[0], new_normal[2]);
+				pitch = -std::atan2(-new_normal[0], -new_normal[2]);
 
 				yaw = 0;
 				break;

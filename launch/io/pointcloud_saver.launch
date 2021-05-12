@@ -6,6 +6,6 @@
         <param name="file_extension" 	value=".csv"   />
 
         <param name="parse_from_bag" value="true"/>
-        <param name="bagfile" value="/home/winston/Documents/ws/280_lidar_run1_2019-09-17-10-34-08.bag" />
+        <param name="bagfile" value="/home/winston/Documents/ws/280_hghwy_cut_2021-03-28-18-21-35.bag" />
     </node>
 </launch>
