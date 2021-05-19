@@ -5,14 +5,21 @@
 	<!-- <include file="$(find pointcloud_utils)/launch/cloud_stamper.launch" />-->
     <node pkg="pointcloud_utils" type="points_playback.py" name="points_playback"
           required="true" output="screen" cwd="node">
-         <param name="folder_name" value="day2_run1_part1_leaders/$(arg lidar)_points_2" />
-         <param name="file_type"   value="xyz" />
-         <param name="file_name"   value="$(arg lidar)_points" />
-         <param name="file_list_name" value="$(arg lidar)_file_list.txt" />
+         <param name="folder_path" value="/home/swm0022/Documents/ws/april_9_circles_points/cut/" />
+         <param name="file_type"   value="csv" />
+         <param name="file_list_name" value="file_list.csv" /> #has pointcount (not used), timestamp, filename members
+         <param name="time_is_in_seconds" value="true" /> #whether the time in the file list is in seconds or ms
+
          <param name="frame" 	   value="$(arg lidar)" />
-         <param name="point_topic" value="/leader_points/truth/$(arg lidar)" />
-         <param name="cloud_sync_topic" value="/$(arg lidar)_points" />
-         <param name="save_to_bagfile" value="false" />
-         <param name="publish_points" value="true" />
+         <param name="point_topic" value="/innoviz_points" />
+
+        
+         <param name="save_to_bagfile" value="true" />
+         <param name="bagfile_name"    value="april_9_circles_cut_points.bag" />
+         <param name="publish_points" value="false" />
+         <param name="has_intensity" value="false" />
+         <param name="use_live_cloud_sync" value="false" />
+         <param name="cloud_sync_topic" value="/invz_topic_1" />
+         <param name="rate"          value="10" /> # hz #note: this is used if sync is not (todo: implement)
     </node>
 </launch> 
