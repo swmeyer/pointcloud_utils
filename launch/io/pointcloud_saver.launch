@@ -1,11 +1,11 @@
 <launch>
     <node pkg="pointcloud_utils" type="pointcloud_saver" name="pointcloud_saver"
           required="true" output="screen">
-        <param name="cloud_topic" 		value="/innoviz_points" />
+        <param name="cloud_topic" 		value="/invz_topic_1" />
         <param name="filename_base" 	value="$(find pointcloud_utils)/points/points" />
         <param name="file_extension" 	value=".csv"   />
 
         <param name="parse_from_bag" value="true"/>
-        <param name="bagfile" value="/home/swm0022/Documents/ws/april_9_embark_circles_restamp.bag" />
+        <param name="bagfile" value="/home/swm0022/Documents/ws/mkz_scan_1_2021-04-30-19-48-55.bag" />
     </node>
 </launch>
