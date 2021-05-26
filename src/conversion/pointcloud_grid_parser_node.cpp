@@ -357,6 +357,8 @@ int main(int argc, char* argv[])
 	
     	bag.open(bagfile_name);  // BagMode is Read by default
     	
+    	//TODO: get transform from inside bag 
+
     	for(rosbag::MessageInstance const m: rosbag::View(bag, rosbag::TopicQuery(lidar_topic)))
     	{
     	  sensor_msgs::PointCloud2::ConstPtr msg = m.instantiate<sensor_msgs::PointCloud2>();
@@ -366,7 +368,6 @@ int main(int argc, char* argv[])
     	    {
     	        break;
     	    }
-
     	    	std::cout << "\nRecieving new point cloud\n";
 				header = msg->header;
 				if (header.stamp.toSec() == 0)
