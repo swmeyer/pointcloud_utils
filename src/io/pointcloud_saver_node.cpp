@@ -51,13 +51,12 @@ int main(int argc, char* argv[])
     	{
     	  sensor_msgs::PointCloud2::ConstPtr i = m.instantiate<sensor_msgs::PointCloud2>();
     	  if (i != nullptr)
-    	  {
-    	    if (!ros::ok())
-    	    {
-    	        break;
-    	    }
-    	    
+    	  {    	    
     	    pc_saver.setCurrentCloud(i);
+    	  }
+    	  if (!ros::ok())
+    	  {
+    	      break;
     	  }
     	}
 

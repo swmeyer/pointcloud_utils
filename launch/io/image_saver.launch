@@ -7,7 +7,10 @@
 
     <node pkg="pointcloud_utils" type="img_saver.py" name="image_saver2"
           required="true" output="screen" cwd="node">
-      	   <param name="img_topic" 		value="/grid_image/velodyne_edge" />
-      	   <param name="folder_name" 		value="velodyne_images" />
+      	   <param name="img_topic" 		value="/small_hauler_1/camera/left/image_raw" />
+      	   <param name="folder_name" 		value="nasa_images_small_hauler_left" />
+
+           <param name="from_bag"     value="true" />
+           <param name="bagfile_path" value="/home/swm0022/Documents/nasa_ws/2021-05-16-17-12-35.bag" />
     </node>
 </launch>
