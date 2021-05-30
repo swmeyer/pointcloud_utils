@@ -4,6 +4,8 @@ from sensor_msgs import point_cloud2
 from sensor_msgs.msg import PointCloud2, PointField
 from std_msgs.msg import Header
 
+from decimal import Decimal
+
 import struct
 import time
 
@@ -20,9 +22,8 @@ import rosbag
 
 frame = "lidar"
 global filepath
-file_name = "points"
 file_type = "xyz"
-folder_name = "points"
+folder_path = "points"
 file_count = 0
 file_list_name = "file_list.txt"
 point_topic = "/points"
@@ -30,10 +31,12 @@ pointcloud_sync_topic = "/cloud"
 global points_pub
 global current_timestamp
 global current_cloud
+global has_intensity
+global time_is_in_seconds
 published = False
-save_to_bagfile = False
-publish_points = True
-bagfile = "bag"
+global save_to_bagfile
+global publish_points
+global bagfile
 
 def pointcloudCallback(msg):
 	global current_timestamp
@@ -41,11 +44,16 @@ def pointcloudCallback(msg):
 	global current_cloud
 	global published
 
-	print str(current_timestamp - msg.header.stamp) + "\n"
+	#TODO: handle the case where pointcloud has invalid timestamp
 
-	if (current_timestamp <= msg.header.stamp):
-		points_pub.publish(current_cloud)
-		published = True
+	#print "time delay: " + str(current_timestamp - msg.header.stamp) + "\n"
+
+	#if (current_timestamp <= msg.header.stamp):
+	#	points_pub.publish(current_cloud)
+	#	published = True
+	
+	points_pub.publish(current_cloud)
+	published = True
 
 def writeToBag(msg):
 	global bagfile
@@ -60,13 +68,15 @@ def writeToBag(msg):
 
 
 def processFile(filename, timestamp):
-	global file_name
 	global frame
 	global current_cloud
 	global current_timestamp
 	global published
 	global save_to_bagfile
 	global publish_points
+	global has_intensity
+	global time_is_in_seconds
+	global use_live_cloud_sync
 
 	#open the old file and copy the contents
 	try:
@@ -83,18 +93,25 @@ def processFile(filename, timestamp):
 		
 		header = Header()
 		header.frame_id = frame
-		#print "Time in sec: " + str(int(timestamp)/1000000000.0) + "\n"
-		header.stamp = rospy.Time.from_sec(int(timestamp)/1000000000.0)
+
+		if (time_is_in_seconds):
+			#print "Time in sec: " + str(Decimal(timestamp)) + "\n"
+			header.stamp = rospy.Time.from_sec(Decimal(timestamp))
+		else:
+			#print "Time in sec: " + str(Decimal(timestamp)/1000000000.0) + "\n"
+			header.stamp = rospy.Time.from_sec(Decimal(timestamp)/1000000000.0)
+		
 		pc2 = point_cloud2.create_cloud(header, fields, cloud)
 		published = False
 		current_cloud = pc2
 		current_timestamp = header.stamp
 
 		if (publish_points):
-			while(published == False and not rospy.is_shutdown()):
-				continue #wait for the cloud to be published
+			if (use_live_cloud_sync):
+				while(published == False and not rospy.is_shutdown()):
+					continue #wait for the cloud to be published
 	
-			print "Publishing cloud at time " + str(header.stamp.secs) + "." + str(header.stamp.nsecs) + "\n"
+			#print "Publishing cloud at time " + str(header.stamp.secs) + "." + str(header.stamp.nsecs) + "\n"
 			points_pub.publish(pc2)
 			#time.sleep(1)
 	
@@ -106,7 +123,6 @@ def processFile(filename, timestamp):
 	print "Processing file " + filename + "\n"
 
 	cloud = []
-	has_i = False
 	with file:
 		lines = file.readlines()
 		skip = True
@@ -117,21 +133,28 @@ def processFile(filename, timestamp):
 				skip = False
 				continue
 
-			tokens = line.split()
+			if (file_type == "xyz"):
+				tokens = line.split()
+			elif (file_type == "csv"):
+				tokens = line.split(",")
+			else:
+				print "ERROR! File type not supported" + file_type + "\n"
+				return
+
 			x = float(tokens[0])
 			y = float(tokens[1])
 			z = float(tokens[2])
-			if (has_i or (len(tokens) > 3) ):
+			if (has_intensity):
 				i = float(tokens[3])
 				pt = [x, y, z, i]
-				has_i = True
+				has_intensity = True
 			else:
 				pt = [x, y, z]
 
 			cloud.append(pt)
 
 	fields = []
- 	if (has_i):
+ 	if (has_intensity):
  		fields = [PointField('x', 0, PointField.FLOAT32, 1),
  				  PointField('y', 4, PointField.FLOAT32, 1),
  				  PointField('z', 8, PointField.FLOAT32, 1),
@@ -143,18 +166,24 @@ def processFile(filename, timestamp):
 
  	header = Header()
 	header.frame_id = frame
-	#print "Time in sec: " + str(int(timestamp)/1000000000.0) + "\n"
-	header.stamp = rospy.Time.from_sec(int(timestamp)/1000000000.0)
+	if (time_is_in_seconds):
+		#print "Time in sec: " + str(Decimal(timestamp)) + "\n"
+		header.stamp = rospy.Time.from_sec(Decimal(timestamp))
+	else:
+		#print "Time in sec: " + str(Decimal(timestamp)/1000000000.0) + "\n"
+		header.stamp = rospy.Time.from_sec(Decimal(timestamp)/1000000000.0)
+
 	pc2 = point_cloud2.create_cloud(header, fields, cloud)
 	published = False
 	current_cloud = pc2
 	current_timestamp = header.stamp
 
 	if (publish_points):
-		while(published == False and not rospy.is_shutdown()):
-			continue #wait for the cloud to be published
+		if (use_live_cloud_sync):
+			while(published == False and not rospy.is_shutdown()):
+				continue #wait for the cloud to be published
 
-		print "Publishing cloud at time " + str(header.stamp.secs) + "." + str(header.stamp.nsecs) + "\n"
+		#print "Publishing cloud at time " + str(header.stamp.secs) + "." + str(header.stamp.nsecs) + "\n"
 		points_pub.publish(pc2)
 		#time.sleep(1)
 
@@ -210,14 +239,14 @@ def processDirectory():
 			tokens = line.split(",")
 			count = tokens[0]
 			timestamp = tokens[1]
-			filename = tokens[2].split()[0] + "_leader." + file_type
+			filename = tokens[2].split()[0] + "." + file_type
 			filename = os.path.join(filepath, filename)
 
 			processFile(filename, timestamp)
 
 
 def init():
-	global folder_name
+	global folder_path
 	global filepath
 	global file_list_name
 	global point_topic
@@ -228,7 +257,8 @@ def init():
 
 	print("initializing file information")
 
-	filepath = os.path.join(os.getcwd(), folder_name)
+	#filepath = os.path.join(os.getcwd(), folder_path)
+	filepath = folder_path
 	if not os.path.exists(filepath):
 		print "Folder " + filepath + " does not exist. aborting.\n"
 		return False
@@ -243,34 +273,39 @@ def init():
 
 
 def getParams():
-	global file_name
 	global file_type
 	global file_list_name
-	global folder_name
+	global folder_path
 	global point_topic
 	global frame
 	global bagfile
 	global save_to_bagfile
 	global publish_points
 	global pointcloud_sync_topic
+	global has_intensity
+	global time_is_in_seconds
+	global use_live_cloud_sync
 
 	print("loading in parameters")
-	folder_name 	 = rospy.get_param('~folder_name', "points")
+	folder_path 	 = rospy.get_param('~folder_path', "points")
 	file_type 		 = rospy.get_param('~file_type', "xyz")
-	file_name        = rospy.get_param('~file_name', "points")
 	file_list_name   = rospy.get_param('~file_list_name', "file_list.txt")
 	point_topic 	 = rospy.get_param('~point_topic', "/leader_points")
 	frame 			 = rospy.get_param('~frame', "lidar")
-	bagfile = frame + "_leader.bag"
+	bagfile 		 = rospy.get_param('~bagfile_name', "points.bag")
 	save_to_bagfile  = rospy.get_param('~save_to_bagfile', False)
-	publish_points   = rospy.get_param('~publish', True) 
+	publish_points   = rospy.get_param('~publish_points', True) 
+	has_intensity    = rospy.get_param('~has_intensity', False)
+	time_is_in_seconds = rospy.get_param('~time_is_in_seconds', False)
+	use_live_cloud_sync = rospy.get_param('~use_live_cloud_sync', False)
 
 	pointcloud_sync_topic = rospy.get_param('~cloud_sync_topic', "/cloud")
 
-	print "Bagfile: " + bagfile + "\n"
+	if (save_to_bagfile):
+		print "Bagfile: " + bagfile + "\n"
 
-	bag = rosbag.Bag(bagfile, 'w')
-	bag.close()
+		bag = rosbag.Bag(bagfile, 'w')
+		bag.close()
 
 	print("parameters lodaded")
 
