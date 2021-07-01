@@ -264,6 +264,7 @@ void pointCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& msg)
 
 	//publishPoints(cloud_parsed);
 
+	//TODO: add quaternion output?
 
 	//publishPoints(cloud);
 

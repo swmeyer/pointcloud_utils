@@ -53,7 +53,7 @@ namespace pointcloud_utils
 	{
 		if (cloud.size() < settings.min_points_to_fit)
 		{
-			std::cout << "Not enough points to fit plane\n";
+			std::cout << "Not enough points to fit plane in parseplane: " << cloud.size() << "\n";
 			return;
 		}
 		//Initialize the covariance matrix:
@@ -140,7 +140,10 @@ namespace pointcloud_utils
 		std::vector<pointcloud_utils::pointstruct> cloud_parsed;
 		PlaneParser::LeastSquaresMatricies least_squares_matricies;
 		//std::cout << "Entering plane finding\n";
-		findPlane( cloud, cloud_parsed, search_window, least_squares_matricies, plane_states, intensity_min, intensity_max);
+		if (!findPlane( cloud, cloud_parsed, search_window, least_squares_matricies, plane_states, intensity_min, intensity_max))
+		{
+			return;
+		}
 
 		//std::cout << "Finished plane finding\n";
 		if (least_squares_matricies.plane_coefficients.size() != 3)
@@ -204,10 +207,11 @@ namespace pointcloud_utils
 	 * @param 		plane_states - values representing planar position and orientation
 	 * @param 		intensity_min - minimum intensity to accept into plane (default 0)
 	 * @param 		intensity_max - maximum intensity to accept into plane (default 256)
-	 * @Return 		void
+	 * @Return 		bool true if successful
+	 * 					 false otherwise
 	 * @Brief 		Parses the given cloud for the given window of points and saves the found planar states
 	 */
-	void PlaneParser::findPlane
+	bool PlaneParser::findPlane
 	(
 		std::vector<pointcloud_utils::pointstruct>& cloud, 
 		std::vector<pointcloud_utils::pointstruct>& plane_points, 
@@ -274,10 +278,11 @@ namespace pointcloud_utils
 	
 		if (!settings.use_point_track_method)
 		{
-			if (cloud.size() < settings.min_points_to_fit)
+			if (plane_points.size() < settings.min_points_to_fit)
 			{
-				std::cout << "Not enough points to fit plane\n";
-				return;
+				std::cout << "Not enough points to fit plane in findPlane: " << plane_points.size() << "\n";
+				
+				return false;
 			}
 			//std::cout << "Found ground points: " << ground_points.size() << "\n";
 			
@@ -301,6 +306,8 @@ namespace pointcloud_utils
 		{
 			//TODO: point track method??
 		}
+
+		return true;
 	}
 
 	/**
@@ -317,7 +324,7 @@ namespace pointcloud_utils
 		//std::cout << "Fitting plane to " << cloud.size() << " points\n";
 		if (cloud.size() < settings.min_points_to_fit)
 		{
-			std::cout << "Not enough points to fit plane\n";
+			std::cout << "Not enough points to fit plane in fitplane: " << cloud.size() << "\n";
 			return;
 		}
 		//Plane fit over the ground point cluster!
@@ -526,9 +533,10 @@ namespace pointcloud_utils
 			//std::cout << "origin pt: " << origin_pt.x << "\n";
 			//Get orientation of the plane:
 			double roll, pitch, yaw;
-			getPlaneOrientation(plane_coefficients, orientation_covariance, roll, pitch, yaw);
+			Eigen::Quaternion<float> quat;
+			getPlaneOrientation(plane_coefficients, orientation_covariance, roll, pitch, yaw, quat);
 			double elapsed_time = (this_state_time - last_state_time);
-			if (elapsed_time != 0 && continue_from_last_plane)
+			if (elapsed_time != 0 && continue_from_last_plane) //TODO: This may not work properly with quats yet
 			{
 				//std::cout << "Elapsed time: " << elapsed_time << "\n";
 				//Find relative motion of track point:
@@ -551,7 +559,7 @@ namespace pointcloud_utils
 				translation_rate_covariance = translation_covariance; //TODO: not convinced of this
 			}
 
-			//TODO: if goodness of fit, use the variance for all covariance values
+			// if goodness of fit, use the variance for all covariance values
 			if (settings.covariance_type == PlaneParser::CovarianceType::GOODNESS_OF_FIT_ERROR ||
 				settings.covariance_type == PlaneParser::CovarianceType::GOODNESS_OF_FIT_DISTANCE)
 			{
@@ -600,13 +608,14 @@ namespace pointcloud_utils
 	 * @Function 	getPlaneOrientation
 	 * @Param 		plane_coefficients - vector of plane equation coefficients, a/d, b/d, c/d, with variance
 	 * @param 		orientation_covariance - covariance for the found angles
-	 * @param 		roll - roll angle of the plane (to be found)
-	 * @param 		pitch - pitch angle of the plane (to be found)
-	 * @param 		yaw - yaw angle of the plane (to be found)
+	 * @param 		roll - roll angle of the plane (to be found, if requested)
+	 * @param 		pitch - pitch angle of the plane (to be found, if requested)
+	 * @param 		yaw - yaw angle of the plane (to be found, if requested)
+	 * @param 		quat - quaternion of the plane orienation (to be found, if requested)
 	 * @Return 		void
 	 * @Brief 		determines the orientation of the plane described by the given plane equation
 	 */
-	void PlaneParser::getPlaneOrientation(const Eigen::Vector3f& plane_coefficients, Eigen::Matrix3f& orientation_covariance, double& roll, double& pitch, double& yaw)
+	void PlaneParser::getPlaneOrientation(const Eigen::Vector3f& plane_coefficients, Eigen::Matrix3f& orientation_covariance, double& roll, double& pitch, double& yaw, Eigen::Quaternion<float>& quat)
 	{
 		//TODO: get quaternion and break down into roll, pitch, yaw instead?
 
@@ -741,15 +750,27 @@ namespace pointcloud_utils
 				// break;
 
 				//Try RPY (Plane to body?)
-				roll = std::atan2(-normal[1], -normal[2]);
+				// roll = std::atan2(-normal[1], -normal[2]);
+				// rotation_matrix << 1, 0,               0,
+				// 				   0, std::cos(roll), -std::sin(roll),
+				// 				   0, std::sin(roll),  std::cos(roll);
+
+				// Eigen::Vector3f new_normal = rotation_matrix * normal;
+
+				// pitch = -std::atan2(-new_normal[0], -new_normal[2]);
+
+				//Angles from reference to plane
+				roll = std::atan2(normal[2], normal[1]); //TODO: test this!
 				Eigen::Matrix3f rotation_matrix;
 				rotation_matrix << 1, 0,               0,
-								   0, std::cos(roll), -std::sin(roll),
-								   0, std::sin(roll),  std::cos(roll);
+								   0, std::cos(roll), std::sin(roll),
+								   0, -std::sin(roll),  std::cos(roll);
+
+				//TODO: re-normalize?
 
 				Eigen::Vector3f new_normal = rotation_matrix * normal;
 
-				pitch = -std::atan2(-new_normal[0], -new_normal[2]);
+				pitch = std::atan2(new_normal[2], new_normal[1]);
 
 				yaw = 0;
 				break;
@@ -762,8 +783,12 @@ namespace pointcloud_utils
 				yaw = 0;
 				double norm2 = std::sqrt(std::pow(normal[0], 2) + std::pow(normal[1], 2) + std::pow(normal[2], 2));
 				//std::cout << "Norm: " << norm2 << "\n";
-				pitch = std::asin(normal[0]);
-				roll = std::asin(- normal[1]);
+				// pitch = std::asin(normal[0]);
+				// roll = std::asin(- normal[1]);
+
+				//Angles from reference to plane
+				roll = std::atan2(normal[2], normal[1]); //TODO: test this!
+				pitch = std::atan2(normal[2], normal[0]);
 	
 				//std::cout << "pitch: " << pitch << "\n";
 				//std::cout << "roll: " << roll << "\n";
@@ -774,8 +799,53 @@ namespace pointcloud_utils
 			}
 			default:
 			{
-				//TODO: find quaternions
-				std::cout << "warning: Quaternion soltion not yet implemented.\n";
+				//Find quaternions
+				// std::cout << "warning: Quaternion soltion not yet implemented.\n";
+
+				//DO: Find quaternion rotation between two vectors, the plane normal and [0, 0, 1], the normal of the
+				// reference x-y plane
+
+				//Axis = v2 cross v1
+				//Angle = acos(v1 dot v2)
+				//quat = qrot(axis, angle) //Ogre: https://forums.ogre3d.org/viewtopic.php?t=45076
+
+				//OR: https://stackoverflow.com/questions/1171849/finding-quaternion-representing-the-rotation-from-one-vector-to-another
+				//Shortest arc:
+				// Quaternion q;
+				// vector a = crossproduct(v1, v2);
+				// q.xyz = a;
+				// q.w = sqrt((v1.Length ^ 2) * (v2.Length ^ 2)) + dotproduct(v1, v2);
+
+				Eigen::Vector3f plane_normal(normal[0], normal[1], normal[2]);
+				Eigen::Vector3f ref_normal(0, 0, 1);
+				// Eigen::Vector4f quat;
+
+				// double dot = plane_normal.dot(ref_normal);
+    //     		if (dot < -0.999999)
+    //     		{
+    //     			//TODO: convert this mess
+    //         		// .cross(tmpvec3, xUnitVec3, a);
+    //         		// if (vec3.length(tmpvec3) < 0.000001)
+    //           //   	vec3.cross(tmpvec3, yUnitVec3, a);
+    //         		// vec3.normalize(tmpvec3, tmpvec3);
+    //         		// quat.setAxisAngle(out, tmpvec3, Math.PI);
+    //     		} else if (dot > 0.999999) 
+    //     		{
+    //     		    quat[0] = 0;
+    //     		    quat[1] = 0;
+    //     		    quat[2] = 0;
+    //     		    quat[3] = 1;
+    //     		} else 
+    //     		{
+    //     		    Eigen::Vector3f temp = plane_normal.cross(ref_normal);
+    //     		    quat[0] = temp[0];
+    //     		    quat[1] = temp[1];
+    //     		    quat[2] = temp[2];
+    //     		    quat[3] = 1 + dot;
+    //     		    return quat.normalize(out, out);
+    //     		}
+				quat = quat.FromTwoVectors(plane_normal, ref_normal);
+
 			}
 		}//end switch
 	}
