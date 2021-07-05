@@ -760,7 +760,7 @@ namespace pointcloud_utils
 				// pitch = -std::atan2(-new_normal[0], -new_normal[2]);
 
 				//Angles from reference to plane
-				roll = std::atan2(normal[2], normal[1]); //TODO: test this!
+				roll = atan(normal[1] / normal[2]); //TODO: test this!
 				Eigen::Matrix3f rotation_matrix;
 				rotation_matrix << 1, 0,               0,
 								   0, std::cos(roll), std::sin(roll),
@@ -770,7 +770,7 @@ namespace pointcloud_utils
 
 				Eigen::Vector3f new_normal = rotation_matrix * normal;
 
-				pitch = std::atan2(new_normal[2], new_normal[1]);
+				pitch = atan(new_normal[0] / new_normal[2]);
 
 				yaw = 0;
 				break;
@@ -787,8 +787,8 @@ namespace pointcloud_utils
 				// roll = std::asin(- normal[1]);
 
 				//Angles from reference to plane
-				roll = std::atan2(normal[2], normal[1]); //TODO: test this!
-				pitch = std::atan2(normal[2], normal[0]);
+				roll = atan(normal[1] / normal[2]); //TODO: test this!
+				pitch = atan(normal[0] / normal[2]);
 	
 				//std::cout << "pitch: " << pitch << "\n";
 				//std::cout << "roll: " << roll << "\n";
