@@ -44,7 +44,8 @@ namespace pointcloud_utils
 		enum PlaneFitType
 		{
 			SIMPLE,
-			SVD
+			SVD,
+			UNKNOWN
 		}
 
 
@@ -336,6 +337,11 @@ namespace pointcloud_utils
 		void getCovariance(PlaneParser::PlaneParameters& plane_parameters, const PlaneParser::LeastSquaresMatricies& matricies);
 
 	}; //end class PlaneParser
+	
+	namespace plane_parser_utils
+	{
+		pointcloud_utils::PlaneParser::PlaneFitType convertPlaneFitType(const std::string& string_in);
+	}
 
 } //end namespace pointcloud_utils
 
