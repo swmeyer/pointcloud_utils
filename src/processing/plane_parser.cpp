@@ -352,8 +352,17 @@ namespace pointcloud_utils
 		matricies.sum_vector = Eigen::VectorXf::Constant(cloud.size(), 1, 1);
 	
 		//Solve least squares:
-		matricies.plane_coefficients = matricies.points_matrix.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(matricies.sum_vector);
-
+		if (settings.plane_fit_type == pointcloud_utils::PlaneParser::PlaneFitTypes::SIMPLE)
+		{
+			matricies.plane_coefficients = (matricies.points_matrix.transpose() * matricies.points_matrix).inverse() * matricies.points_matrix.transpose() * matricies.sum_vector;
+		}
+		else if (settings.plane_fit_type == pointlcoud_utils::PlaneParser::PlaneFitTypes::SVD)
+		{
+			matricies.plane_coefficients = matricies.points_matrix.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(matricies.sum_vector);
+		} else
+		{
+			std::cout << "Plane fit option " << settings.plane_fit_type << " not supported. Zeroing plane coefficient results\n";
+			matricies.plane_coefficients << 0, 0, 0;
 		return;
 	}
 
