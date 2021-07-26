@@ -107,7 +107,7 @@ namespace pointcloud_utils
 			float yaw_vel 	= 0;
 
 			float variance = 0.0;
-			Eigen::MatrixXf covariance_matrix; //12x12, full state covariance
+			Eigen::MatrixXf covariance_matrix; // state covariance (usually only for roll, pitch)
 
 			//Quaternion:
 			float quat_w = 0;
@@ -140,9 +140,12 @@ namespace pointcloud_utils
 
 		struct LeastSquaresMatricies
 		{
-			Eigen::MatrixXf points_matrix;
-			Eigen::Vector3f plane_coefficients;
-			Eigen::VectorXf sum_vector;
+			Eigen::MatrixXf points_matrix; //mx3
+			Eigen::Vector3f plane_coefficients; //3 x 1
+			Eigen::VectorXf sum_vector; //m x 1
+			Eigen::MatrixXf matrix_U; //mxm
+			Eigen::MatrixXf matrix_V; // mx3
+			Eigen::MatrixXf matrix_E; // 3x3
 		};
 
 		PlaneParser(const PlaneParser::Settings& settings);
