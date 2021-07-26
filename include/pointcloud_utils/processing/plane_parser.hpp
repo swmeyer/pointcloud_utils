@@ -40,6 +40,12 @@ namespace pointcloud_utils
 			SIMPLE_ANGLES,
 			QUATERNIONS
 		};
+		
+		enum PlaneFitType
+		{
+			SIMPLE,
+			SVD
+		}
 
 
 		struct Settings
@@ -62,6 +68,7 @@ namespace pointcloud_utils
 			
 			PlaneParser::AngleSolutionType 	angle_solution_type; 	// Determines what equations to use when solving for the planar roll and pitch
 			PlaneParser::CovarianceType 	 	covariance_type; 			// Specifies which equations to use for covariance
+			PlaneParser::PlaneFitType 	plane_fit_type; //Determines which type of plane fit to use. 
 		};
 
 		struct States
