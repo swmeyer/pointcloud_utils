@@ -358,7 +358,13 @@ namespace pointcloud_utils
 		}
 		else if (settings.plane_fit_type == pointlcoud_utils::PlaneParser::PlaneFitTypes::SVD)
 		{
-			matricies.plane_coefficients = matricies.points_matrix.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(matricies.sum_vector);
+			//TODO: try just a nominal svd here (SVD<MatrixXf>)
+			Eigen::JacobiSVD<MatrixXf> svd(matricies.points_matrix, Eigen::ComputeThinU | Eigen::ComputeThinV);
+			matricies.plane_coefficients = svd.solve(matricies.sum_vector);
+			matricies.matrix_U = svd.matrixU();
+			matricies.matrix_V = svd.matrixV();
+			matricies.matrix_E = svd.singularValues() * Eigen::Matrix3f::Identity(); //TODO: check this
+			std::cout << "Sigma matrix: \n" << matricies.matrix_E << "\n";
 		} else
 		{
 			std::cout << "Plane fit option " << settings.plane_fit_type << " not supported. Zeroing plane coefficient results\n";
@@ -809,7 +815,7 @@ namespace pointcloud_utils
 			default:
 			{
 				//Find quaternions
-				// std::cout << "warning: Quaternion soltion not yet implemented.\n";
+				// std::cout << "warning: Quaternion solution not yet implemented.\n";
 
 				//DO: Find quaternion rotation between two vectors, the plane normal and [0, 0, 1], the normal of the
 				// reference x-y plane
@@ -922,6 +928,26 @@ namespace pointcloud_utils
 			case (pointcloud_utils::PlaneParser::CovarianceType::MONTE_CARLO):
 			{
 				std::cout << "Warning: MONTE_Carlo covariance has not yet been implemented.\n";
+				break;
+			}
+			case (pointcloud_utils::PlaneParser::CovarianceType::LEAST_SQUARES):
+			{
+				std::cout << "Warning: Least Squares covariance has not been tested yet\n";
+				//1. Either use capital sigma from the SVD solution as the covariance of A, or calculate it according to the covariance from SVD formula:
+				// Here is the proper SVD formula: 
+				// Cov(A) = A.transpose*A = V * E^2 * V.transpose
+// 				//matricies.points_matrix.transpose() * matricies.points_matrix; 
+				Eigen::MatrixXf cov_A = matricies.matrix_V * matricies.matrix_E.pow(2) * matricies.matrix_V.transpose();
+				
+				std::cout << "A covariance: \n" << cov_A << "\n";
+				//2. cov(x) = diag(cov(A)) * (A.transpose() * A)^-1
+				//Note: I want to pul out the diagonals of cov A, hoping that it is a diagonal matrix
+				Eigen::MatrixXf cov_X = cov_A.diagonal() * (matricies.points_matrix.traspose() * matricies.points_matrix).inverse();
+				
+				std::cout << "Found covariance: \n" << cov_x << "\n";			
+				
+				plane_parameters.covariance_matrix = cov_x;
+				
 				break;
 			}
 			default:
