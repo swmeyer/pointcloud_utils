@@ -943,5 +943,23 @@ namespace pointcloud_utils
 		//		  << plane_parameters.covariance_matrix(2,1) << ", "
 		//		  << plane_parameters.covariance_matrix(2,2) << ", \n";
 	}
+	
+	namespace plane_parser_utils
+	{
+		pointcloud_utils::PlaneParser::PlaneFitType convertPlaneFitType(const std::string& string_in)
+		{
+			if (string_in == "simple"" || string_in == "SIMPLE" || string_in == "Simple")
+			{
+				  return pointcloud_utils::PlaneParser::PlaneFitType::SIMPLE;
+			} else if (string_in == "SVD" || string_in == "svd")
+			{
+				return pointcloud_utils::PlaneParser::PlaneFitType::SVD;
+			} else
+			{
+				return pointcloud_utils::PlaneParser::PlaneFitType::UNKNOWN;
+			}
+		}
+	}
+	
 
 } //end namespace pointcloud_utils
