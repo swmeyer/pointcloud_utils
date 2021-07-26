@@ -30,7 +30,8 @@ namespace pointcloud_utils
 			GOODNESS_OF_FIT_ERROR,
 			GOODNESS_OF_FIT_DISTANCE,
 			ANALYTICAL,
-			MONTE_CARLO
+			MONTE_CARLO,
+			LEAST_SQUARES
 		};
 
 		enum AngleSolutionType
