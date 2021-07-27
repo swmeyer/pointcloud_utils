@@ -352,8 +352,23 @@ namespace pointcloud_utils
 		matricies.sum_vector = Eigen::VectorXf::Constant(cloud.size(), 1, 1);
 	
 		//Solve least squares:
-		matricies.plane_coefficients = matricies.points_matrix.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(matricies.sum_vector);
-
+		if (settings.plane_fit_type == pointcloud_utils::PlaneParser::PlaneFitTypes::SIMPLE)
+		{
+			matricies.plane_coefficients = (matricies.points_matrix.transpose() * matricies.points_matrix).inverse() * matricies.points_matrix.transpose() * matricies.sum_vector;
+		}
+		else if (settings.plane_fit_type == pointlcoud_utils::PlaneParser::PlaneFitTypes::SVD)
+		{
+			//TODO: try just a nominal svd here (SVD<MatrixXf>)
+			Eigen::JacobiSVD<MatrixXf> svd(matricies.points_matrix, Eigen::ComputeThinU | Eigen::ComputeThinV);
+			matricies.plane_coefficients = svd.solve(matricies.sum_vector);
+			matricies.matrix_U = svd.matrixU();
+			matricies.matrix_V = svd.matrixV();
+			matricies.matrix_E = svd.singularValues() * Eigen::Matrix3f::Identity(); //TODO: check this
+			std::cout << "Sigma matrix: \n" << matricies.matrix_E << "\n";
+		} else
+		{
+			std::cout << "Plane fit option " << settings.plane_fit_type << " not supported. Zeroing plane coefficient results\n";
+			matricies.plane_coefficients << 0, 0, 0;
 		return;
 	}
 
@@ -800,7 +815,7 @@ namespace pointcloud_utils
 			default:
 			{
 				//Find quaternions
-				// std::cout << "warning: Quaternion soltion not yet implemented.\n";
+				// std::cout << "warning: Quaternion solution not yet implemented.\n";
 
 				//DO: Find quaternion rotation between two vectors, the plane normal and [0, 0, 1], the normal of the
 				// reference x-y plane
@@ -915,6 +930,26 @@ namespace pointcloud_utils
 				std::cout << "Warning: MONTE_Carlo covariance has not yet been implemented.\n";
 				break;
 			}
+			case (pointcloud_utils::PlaneParser::CovarianceType::LEAST_SQUARES):
+			{
+				std::cout << "Warning: Least Squares covariance has not been tested yet\n";
+				//1. Either use capital sigma from the SVD solution as the covariance of A, or calculate it according to the covariance from SVD formula:
+				// Here is the proper SVD formula: 
+				// Cov(A) = A.transpose*A = V * E^2 * V.transpose
+// 				//matricies.points_matrix.transpose() * matricies.points_matrix; 
+				Eigen::MatrixXf cov_A = matricies.matrix_V * matricies.matrix_E.pow(2) * matricies.matrix_V.transpose();
+				
+				std::cout << "A covariance: \n" << cov_A << "\n";
+				//2. cov(x) = diag(cov(A)) * (A.transpose() * A)^-1
+				//Note: I want to pul out the diagonals of cov A, hoping that it is a diagonal matrix
+				Eigen::MatrixXf cov_X = cov_A.diagonal() * (matricies.points_matrix.traspose() * matricies.points_matrix).inverse();
+				
+				std::cout << "Found covariance: \n" << cov_x << "\n";			
+				
+				plane_parameters.covariance_matrix = cov_x;
+				
+				break;
+			}
 			default:
 			{
 				//Should not get here
@@ -934,5 +969,23 @@ namespace pointcloud_utils
 		//		  << plane_parameters.covariance_matrix(2,1) << ", "
 		//		  << plane_parameters.covariance_matrix(2,2) << ", \n";
 	}
+	
+	namespace plane_parser_utils
+	{
+		pointcloud_utils::PlaneParser::PlaneFitType convertPlaneFitType(const std::string& string_in)
+		{
+			if (string_in == "simple"" || string_in == "SIMPLE" || string_in == "Simple")
+			{
+				  return pointcloud_utils::PlaneParser::PlaneFitType::SIMPLE;
+			} else if (string_in == "SVD" || string_in == "svd")
+			{
+				return pointcloud_utils::PlaneParser::PlaneFitType::SVD;
+			} else
+			{
+				return pointcloud_utils::PlaneParser::PlaneFitType::UNKNOWN;
+			}
+		}
+	}
+	
 
 } //end namespace pointcloud_utils

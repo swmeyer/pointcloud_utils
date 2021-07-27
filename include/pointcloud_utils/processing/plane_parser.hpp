@@ -30,7 +30,8 @@ namespace pointcloud_utils
 			GOODNESS_OF_FIT_ERROR,
 			GOODNESS_OF_FIT_DISTANCE,
 			ANALYTICAL,
-			MONTE_CARLO
+			MONTE_CARLO,
+			LEAST_SQUARES
 		};
 
 		enum AngleSolutionType
@@ -40,6 +41,13 @@ namespace pointcloud_utils
 			SIMPLE_ANGLES,
 			QUATERNIONS
 		};
+		
+		enum PlaneFitType
+		{
+			SIMPLE,
+			SVD,
+			UNKNOWN
+		}
 
 
 		struct Settings
@@ -62,6 +70,7 @@ namespace pointcloud_utils
 			
 			PlaneParser::AngleSolutionType 	angle_solution_type; 	// Determines what equations to use when solving for the planar roll and pitch
 			PlaneParser::CovarianceType 	 	covariance_type; 			// Specifies which equations to use for covariance
+			PlaneParser::PlaneFitType 	plane_fit_type; //Determines which type of plane fit to use. 
 		};
 
 		struct States
@@ -98,7 +107,7 @@ namespace pointcloud_utils
 			float yaw_vel 	= 0;
 
 			float variance = 0.0;
-			Eigen::MatrixXf covariance_matrix; //12x12, full state covariance
+			Eigen::MatrixXf covariance_matrix; // state covariance (usually only for roll, pitch)
 
 			//Quaternion:
 			float quat_w = 0;
@@ -131,9 +140,12 @@ namespace pointcloud_utils
 
 		struct LeastSquaresMatricies
 		{
-			Eigen::MatrixXf points_matrix;
-			Eigen::Vector3f plane_coefficients;
-			Eigen::VectorXf sum_vector;
+			Eigen::MatrixXf points_matrix; //mx3
+			Eigen::Vector3f plane_coefficients; //3 x 1
+			Eigen::VectorXf sum_vector; //m x 1
+			Eigen::MatrixXf matrix_U; //mxm
+			Eigen::MatrixXf matrix_V; // mx3
+			Eigen::MatrixXf matrix_E; // 3x3
 		};
 
 		PlaneParser(const PlaneParser::Settings& settings);
@@ -329,6 +341,11 @@ namespace pointcloud_utils
 		void getCovariance(PlaneParser::PlaneParameters& plane_parameters, const PlaneParser::LeastSquaresMatricies& matricies);
 
 	}; //end class PlaneParser
+	
+	namespace plane_parser_utils
+	{
+		pointcloud_utils::PlaneParser::PlaneFitType convertPlaneFitType(const std::string& string_in);
+	}
 
 } //end namespace pointcloud_utils
 

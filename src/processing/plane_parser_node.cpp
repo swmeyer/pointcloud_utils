@@ -361,8 +361,13 @@ int main(int argc, char* argv[])
 
 	n_.param<int>("min_points_to_fit", settings.min_points_to_fit, 20);
     n_.param<bool>("report_offsets_at_origin", settings.report_offsets_at_origin, false);
+	std::string plane_fit_type;
+	n_.param<std::string>("plane_fit_type", plane_fit_type, "svd");
+	
+	settings.plane_fit_type = pointcloud_utils::convertPlaneFitType(plane_fit_type);
     
 	plane_parser = new pointcloud_utils::PlaneParser(settings);
+	
 
 	// n_.param<int>("intensity_min", intensity_min, 20);
 	// n_.param<int>("intensity_max", intensity_max, 250);
