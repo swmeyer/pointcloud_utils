@@ -1,5 +1,5 @@
 <launch>
-	<arg name="intensity_min" default="0" />
+	<arg name="intensity_min" default="40" />
 	<arg name="intensity_max" default="256" />
 	<arg name="cloud_in_topic" default="/velodyne_points" />
 	<arg name="cloud_out_topic" default="/filtered_points" />
