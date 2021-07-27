@@ -64,7 +64,7 @@ namespace pointcloud_utils
 		float z;
 	} polarPointstruct;
 
-	enum costmapValues
+	enum class costmapValues
 	{
 		FREE = 255,
 		UNKNOWN = 127,

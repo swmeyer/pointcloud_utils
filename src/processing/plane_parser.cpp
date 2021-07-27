@@ -35,7 +35,8 @@ namespace pointcloud_utils
 	 * @param 		plane_parameters - coefficients of the fitted plane equation
 	 * @param 		plane_states - values representing planar position and orientation
 	 * @param 		search_window - window within which to process points for this plane
-	 * @param 		continue_from_last_plane - if true, updates tracked states using this plane fit
+	 * @param 		intensity_min - min intensity value to consider
+	 * @param 		intensity_max - max intensity value to consider
 	 * @return 		void
 	 */
 	void PlaneParser::parsePlane
@@ -46,7 +47,6 @@ namespace pointcloud_utils
 		PlaneParser::PlaneParameters& plane_parameters,
 		PlaneParser::States& plane_states,
 		pointcloud_utils::SearchWindow& search_window,
-		bool continue_from_last_plane, 
 		const float intensity_min,
 		const float intensity_max
 	)
@@ -56,34 +56,39 @@ namespace pointcloud_utils
 			std::cout << "Not enough points to fit plane in parseplane: " << cloud.size() << "\n";
 			return;
 		}
-		//Initialize the covariance matrix:
+
+		//Initialize the covariance matrices (for abc parameters and for 12 dof states)
 		plane_parameters.covariance_matrix = Eigen::Matrix3f::Zero();
+		plane_states.covariance_matrix = Eigen::MatrixXf::Zero(12, 12);
+
 		// convert to point vector
 		pointcloud_utils::convertFromPointCloud2(cloud_in, cloud);
 		
+		//Vector to save plane points in:
 		std::vector<pointcloud_utils::pointstruct> filtered_cloud_vector;
 
+		//Do the plane parsing on the given cloud, fitting plane parameters:
 		this->parsePlane
 		(
 			cloud, 
 			filtered_cloud_vector,
 			plane_parameters, 
 			plane_states, 
-			search_window, 
-			continue_from_last_plane,
+			search_window,
 			cloud_in->header.stamp.toSec(),
 			intensity_min,
 			intensity_max
 		);
 
-		//convert back to pointcloud message:
+		//convert filtered cloud back to pointcloud message for publishing:
 		filtered_cloud.header = cloud_in->header;
 		filtered_cloud.fields = cloud_in->fields;
 		filtered_cloud.point_step = cloud_in->point_step;
 		filtered_cloud.height = 1;
 		filtered_cloud.width = filtered_cloud_vector.size();
 		filtered_cloud.row_step = filtered_cloud.point_step * filtered_cloud_vector.size();
-			
+		
+		//If we transformed the cloud, the coordinate frame ID needs to be updated:
 		if (settings.do_transform)
 		{
 			filtered_cloud.header.frame_id = settings.transform_frame;
@@ -93,7 +98,6 @@ namespace pointcloud_utils
 
 		filtered_cloud.data.resize(filtered_cloud.row_step);
 		memcpy(&(filtered_cloud.data[0]), &(filtered_cloud_vector[0]), filtered_cloud.row_step);
-	
 	}
 	/**
 	 * @function 	parsePlane
@@ -102,9 +106,10 @@ namespace pointcloud_utils
 	 * @param 		plane_points  - space to store the filtered plane points
 	 * @param 		plane_parameters - coefficients of the fitted plane equation
 	 * @param 		plane_states - values representing planar position and orientation
-	 * @param 		time - rostime in seconds for this cloud
 	 * @param 		search_window - window within which to process points for this plane
-	 * @param 		continue_from_last_plane - if true, updates tracked states using this plane fit
+	 * @param 		time - rostime in seconds for this cloud
+	 * @param 		intensity_min - min intensity value to consider (default 0)
+	 * @param 		intensity_max - max intensity value to consider (default 256)
 	 * @return 		void
 	 */
 	void PlaneParser::parsePlane
@@ -114,35 +119,43 @@ namespace pointcloud_utils
 		PlaneParser::PlaneParameters& plane_parameters,
 		PlaneParser::States& plane_states,
 		pointcloud_utils::SearchWindow& search_window,
-		bool continue_from_last_plane, 
 		const double time,
 		const float intensity_min,
 		const float intensity_max
 	)
 	{
-		if (continue_from_last_plane)
-		{
-			if (first)
-			{
-				//first = false;
-				last_state_time = this_state_time;
-			}
-			this_state_time = time;
-		}
-
-
+		//If transforming the cloud, do the transform now
 		if (settings.do_transform)
 		{
 			pointcloud_utils::transformCloud(cloud, settings.transform);
 		}
 
-		//plane parsing!
-		std::vector<pointcloud_utils::pointstruct> cloud_parsed;
+		//Filter the cloud by the search window and intensity
+		filterCloud( cloud, filtered_cloud, search_window, intensity_min, intensity_max);
+
+		//Fit a plane to the filtered points
 		PlaneParser::LeastSquaresMatricies least_squares_matricies;
-		//std::cout << "Entering plane finding\n";
-		if (!findPlane( cloud, cloud_parsed, search_window, least_squares_matricies, plane_states, intensity_min, intensity_max))
+		if (filtered_cloud.size() < settings.min_points_to_fit)
 		{
+			std::cout << "Warning: Not enough points to fit plane in findPlane: " << filtered_cloud.size() << "\n";
 			return;
+		}
+
+		//std::cout << "entering plane fit method\n";
+		fitPlane(filtered_cloud, least_squares_matricies);
+
+		//std::cout << "Fitted plane\n";
+		if (settings.iterate_plane_fit)
+		{
+			//std::cout << "removing outliers\n";
+			int plane_fit_iterations = 1;
+			int outliers_removed = removeOutliers(filtered_cloud, least_squares_matricies.plane_coefficients);
+			while (plane_fit_iterations < settings.max_iterations && outliers_removed > 0)
+			{
+				fitPlane(filtered_cloud, least_squares_matricies);
+				outliers_removed = removeOutliers(filtered_cloud, least_squares_matricies.plane_coefficients);
+				plane_fit_iterations++;
+			}
 		}
 
 		//std::cout << "Finished plane finding\n";
@@ -151,31 +164,43 @@ namespace pointcloud_utils
 			plane_parameters.a_d = 0;
 			plane_parameters.b_d = 0;
 			plane_parameters.c_d = 0;
+			plane_parameters.a = 0;
+			plane_parameters.b = 0;
+			plane_parameters.c = 0;
 		} else
 		{
 			plane_parameters.a_d = least_squares_matricies.plane_coefficients[0];
 			plane_parameters.b_d = least_squares_matricies.plane_coefficients[1];
 			plane_parameters.c_d = least_squares_matricies.plane_coefficients[2];
+			plane_parameters.a = least_squares_matricies.plane_coefficients[0];
+			plane_parameters.b = least_squares_matricies.plane_coefficients[1];
+			plane_parameters.c = least_squares_matricies.plane_coefficients[2];
 		}
 
-		getCovariance(plane_parameters, least_squares_matricies);
+		//Solve for the covariance of the solved plane parameters a, b, and c
+		getPlaneParameterCovariance(plane_parameters, least_squares_matricies);
 
-		getPlaneStates( least_squares_matricies.plane_coefficients, plane_parameters.covariance_matrix, plane_states, search_window, continue_from_last_plane);
+		//Solve for the roll, pitch, and so on as well as state covariance
+		getPlaneStates(plane_parameters, plane_states, search_window);
 
 		//std::cout << "Finished getting plane states\n";
 
-		if (continue_from_last_plane)
+		//If getting rates, update saved time stamps
+		if (settings.continue_from_last_plane)
 		{
 			if (first)
 			{
+				//first = false;
+				last_state_time = this_state_time;
 				first = false;
-				//Initialize filter:
 			}
+			this_state_time = time;
 		}
+
 
 		//std::cout << "Points found: " << cloud_parsed.size() << "\n";
 
-		filtered_cloud = cloud_parsed;
+		// filtered_cloud = cloud_parsed;
 	}
 
 	//TODO: make a templated version which requires the specification of a pointstruct type
@@ -197,56 +222,47 @@ namespace pointcloud_utils
 		return(pointcloud_utils::inTolerance(distance, 0, tolerance));
 	}
 
+	/** Track point code
+	if (settings.use_point_track_method)
+	{
+	//Find points of interest
+	bool pt_1_found = false;
+	bool pt_2_found = false;
+	bool pt_3_found = false;
+	
+	bool track_point_found = false;
+
+	pointcloud_utils::pointstruct pt1;
+	pointcloud_utils::pointstruct pt2;
+	pointcloud_utils::pointstruct pt3;
+	
+	pointcloud_utils::pointstruct track_pt;
+	
+	pointcloud_utils::pointstruct track_pt_x;
+	pointcloud_utils::pointstruct track_pt_y;
+	pointcloud_utils::pointstruct track_pt_z;
+
+
+
 	/**
-	 * @Function 	findPlane
+	 * @Function 	filterCloud
 	 * @Param 		cloud - point cloud to parse
 	 * @Param 		plane_points - place to save parsed cloud
 	 * @Param 		search_window - bounds within which to process points
-	 * @param 		continue_from_last_plane - if true, updates tracked states using this plane fit
-	 * @param 		matricies - struct with eigen matricies used in the least squares solution (to be generated by this function)
-	 * @param 		plane_states - values representing planar position and orientation
 	 * @param 		intensity_min - minimum intensity to accept into plane (default 0)
 	 * @param 		intensity_max - maximum intensity to accept into plane (default 256)
-	 * @Return 		bool true if successful
-	 * 					 false otherwise
-	 * @Brief 		Parses the given cloud for the given window of points and saves the found planar states
+	 * @Return 		void
+	 * @Brief 		Filteres the given cloud to the given window of points
 	 */
-	bool PlaneParser::findPlane
+	void PlaneParser::filterCloud
 	(
 		std::vector<pointcloud_utils::pointstruct>& cloud, 
 		std::vector<pointcloud_utils::pointstruct>& plane_points, 
 		const pointcloud_utils::SearchWindow& search_window,
-		PlaneParser::LeastSquaresMatricies& matricies,
-		PlaneParser::States& plane_states,
 		const float intensity_min,
 		const float intensity_max
 	)
 	{
-		//Find points of interest
-	
-		//std::cout << "Finding plane\n";
-	
-		bool pt_1_found = false;
-		bool pt_2_found = false;
-		bool pt_3_found = false;
-	
-		bool track_point_found = false;
-	
-		//std::vector<pointcloud_utils::pointstruct> plane_points;
-	
-		pointcloud_utils::pointstruct pt1;
-		pointcloud_utils::pointstruct pt2;
-		pointcloud_utils::pointstruct pt3;
-	
-		pointcloud_utils::pointstruct track_pt;
-	
-		pointcloud_utils::pointstruct track_pt_x;
-		pointcloud_utils::pointstruct track_pt_y;
-		pointcloud_utils::pointstruct track_pt_z;
-	
-		//std::cout << "bounds: " << x_max << ", " << x_min << ", " << y_max << ", " << y_min
-		//						<< ", " << z_max << ", " << z_min << "\n";
-		
 		//std::cout << "bounds: " << search_window.x_max << ", " << search_window.x_min << ", "
 		//						<< search_window.y_max << ", " << search_window.y_min << ", "
 		//						<< search_window.z_max << ", " << search_window.z_min << ", "
@@ -256,58 +272,18 @@ namespace pointcloud_utils
 		//std::cout << "Cloud size: " << cloud.size() << "\n";
 		for (pointcloud_utils::pointstruct pt : cloud)
 		{
-			if (!settings.use_point_track_method)
+			//std::cout << "Point: " << pt.x << ", " << pt.y << ", " << pt.z << ", " << pt.intensity << "\n";
+			if (pt.x <= search_window.x_max && pt.x >= search_window.x_min &&
+				pt.y <= search_window.y_max && pt.y >= search_window.y_min &&
+				pt.z <= search_window.z_max && pt.z >= search_window.z_min &&
+				pt.intensity <= intensity_max && pt.intensity >= intensity_min)
 			{
-				//std::cout << "Point: " << pt.x << ", " << pt.y << ", " << pt.z << ", " << pt.intensity << "\n";
-				if (pt.x <= search_window.x_max && pt.x >= search_window.x_min &&
-					pt.y <= search_window.y_max && pt.y >= search_window.y_min &&
-					pt.z <= search_window.z_max && pt.z >= search_window.z_min &&
-					pt.intensity <= intensity_max && pt.intensity >= intensity_min)
-				{
-					plane_points.push_back(pt);
-					//std::cout << "Found point!\n";
-				}
-			} else
-			{
-				std::cout << "Warning! Point track method has not yet been implemented\n";
-				//TODO: select 3 specific points in the window to fit a plane to, and one to use as the track point
+				plane_points.push_back(pt);
+				//std::cout << "Found point!\n";
 			}
 		}
 	
 		//std::cout << "Initial plane points found: " << plane_points.size() << "\n";
-	
-		if (!settings.use_point_track_method)
-		{
-			if (plane_points.size() < settings.min_points_to_fit)
-			{
-				std::cout << "Not enough points to fit plane in findPlane: " << plane_points.size() << "\n";
-				
-				return false;
-			}
-			//std::cout << "Found ground points: " << ground_points.size() << "\n";
-			
-			//Plane fit over the ground point cluster!
-			//std::cout << "entering plane fit method\n";
-			fitPlane(plane_points, matricies);
-			//std::cout << "Fitted plane\n";
-			if (settings.iterate_plane_fit)
-			{
-				//std::cout << "removing outliers\n";
-				int plane_fit_iterations = 1;
-				int outliers_removed = removeOutliers(plane_points, matricies.plane_coefficients);
-				while (plane_fit_iterations < settings.max_iterations && outliers_removed > 0)
-				{
-					fitPlane(plane_points, matricies);
-					outliers_removed = removeOutliers(plane_points, matricies.plane_coefficients);
-					plane_fit_iterations++;
-				}
-			}
-		} else
-		{
-			//TODO: point track method??
-		}
-
-		return true;
 	}
 
 	/**
@@ -352,23 +328,25 @@ namespace pointcloud_utils
 		matricies.sum_vector = Eigen::VectorXf::Constant(cloud.size(), 1, 1);
 	
 		//Solve least squares:
-		if (settings.plane_fit_type == pointcloud_utils::PlaneParser::PlaneFitTypes::SIMPLE)
+		if (settings.plane_fit_type == pointcloud_utils::PlaneParser::PlaneFitType::SIMPLE)
 		{
 			matricies.plane_coefficients = (matricies.points_matrix.transpose() * matricies.points_matrix).inverse() * matricies.points_matrix.transpose() * matricies.sum_vector;
 		}
-		else if (settings.plane_fit_type == pointlcoud_utils::PlaneParser::PlaneFitTypes::SVD)
+		else if (settings.plane_fit_type == pointcloud_utils::PlaneParser::PlaneFitType::SVD)
 		{
 			//TODO: try just a nominal svd here (SVD<MatrixXf>)
-			Eigen::JacobiSVD<MatrixXf> svd(matricies.points_matrix, Eigen::ComputeThinU | Eigen::ComputeThinV);
+			Eigen::JacobiSVD<Eigen::MatrixXf> svd(matricies.points_matrix, Eigen::ComputeThinU | Eigen::ComputeThinV);
 			matricies.plane_coefficients = svd.solve(matricies.sum_vector);
 			matricies.matrix_U = svd.matrixU();
 			matricies.matrix_V = svd.matrixV();
-			matricies.matrix_E = svd.singularValues() * Eigen::Matrix3f::Identity(); //TODO: check this
-			std::cout << "Sigma matrix: \n" << matricies.matrix_E << "\n";
+			//matricies.matrix_E = svd.singularValues() * Eigen::Matrix3f::Identity(); //TODO: check this
+			//std::cout << "Sigma matrix: \n" << matricies.matrix_E << "\n";
+			std::cout << "Singular values:\n" << svd.singularValues() << "\n";
 		} else
 		{
-			std::cout << "Plane fit option " << settings.plane_fit_type << " not supported. Zeroing plane coefficient results\n";
+			std::cout << "Plane fit option unknown. Zeroing plane coefficient results\n";
 			matricies.plane_coefficients << 0, 0, 0;
+		}
 		return;
 	}
 
@@ -434,29 +412,26 @@ namespace pointcloud_utils
 
 	/**
 	 * @Function 	getPlaneStates
-	 * @param 		plane_coefficients - coefficients of the fitted plane equation, with variance
-	 * @param 		plane_parameters_covariance - vector holding row-major-order 3x3 covariance matrix for plane parameters a/d, b/d, c/d
+	 * @param 		plane_parameters - coefficients of the fitted plane equation, with covariance
 	 * @param 		plane_states - values representing planar position and orientation (to be found)
 	 * @Param 		search_window - bounds within which to process points
-	 * @param 		continue_from_last_plane - if true, updates tracked states using this plane fit
 	 * @Return 		void
 	 * @Brief 		Parses the given cloud for the given window of points and saves the found planar states
 	 */
 	void PlaneParser::getPlaneStates
 	(
-		const Eigen::Vector3f& plane_coefficients,
-		const Eigen::Matrix3f& plane_parameters_covariance,
+		const PlaneParser::PlaneParameters& plane_parameters,
 		PlaneParser::States& plane_states,
-		const pointcloud_utils::SearchWindow& search_window,
-		bool continue_from_last_plane
+		const pointcloud_utils::SearchWindow& search_window
 	)
 	{
 
 		plane_states.covariance_matrix = Eigen::MatrixXf::Zero(12, 12);
 				
 
-		if (plane_coefficients[0] == 0 && plane_coefficients[1] == 0 && plane_coefficients[2] == 0)
+		if (plane_parameters.a == 0 && plane_parameters.b == 0 && plane_parameters.c == 0)
 		{
+			std::cout << "Bad plane fit\n";
 			//Bad plane fit! return zero's
 			plane_states.x = 0;
 			plane_states.y = 0;
@@ -464,36 +439,16 @@ namespace pointcloud_utils
 			plane_states.roll = 0;
 			plane_states.pitch = 0;
 			plane_states.yaw = 0;
-		} else if (!settings.use_point_track_method)
+
+		} else
 		{
-			// // do this at center of rotation instead
+			//Get Translations:
+
+			// TODO: do this at center of rotation instead?
 			float center_x = (search_window.x_max + search_window.x_min) / 2;
 			float center_y = (search_window.y_max + search_window.y_min) / 2;
 			float center_z = (search_window.z_max + search_window.z_min) / 2;
-	// 
-			// //Get planar translations in all directions:
-			// float b_prime = -(plane_coefficients[1] * (1/plane_coefficients[0]));
-			// float c_prime = -(plane_coefficients[2] * (1/plane_coefficients[0]));
-			// float d_prime = (1/plane_coefficients[0]);
-			// 
-			// track_pt_x.y = center_y;
-			// track_pt_x.z = center_z;
-			// track_pt_x.x = b_prime * track_pt.y + c_prime * track_pt.z + d_prime;
-		// 
-			// float a_prime = -(plane_coefficients[0] * (1/plane_coefficients[1]));
-			// c_prime = -(plane_coefficients[2] * (1/plane_coefficients[1]));
-			// d_prime = (1/plane_coefficients[1]);
-			// 
-			// track_pt_y.x = center_x;
-			// track_pt_y.z = center_z;
-			// track_pt_y.y = a_prime * track_pt.x + c_prime * track_pt.z + d_prime;
-			// 
-			// a_prime = -(plane_coefficients[0] * (1/plane_coefficients[2]));
-			// b_prime = -(plane_coefficients[1] * (1/plane_coefficients[2]));
-			// d_prime = (1/plane_coefficients[2]);
-			// track_pt_z.x = center_x;
-			// track_pt_z.y = center_y;
-			// track_pt_z.z = a_prime * track_pt.x + b_prime * track_pt.y + d_prime;
+	
 			Eigen::Matrix3f translation_covariance = Eigen::Matrix3f::Zero();
 			Eigen::Matrix3f orientation_covariance = Eigen::Matrix3f::Zero();
 			Eigen::Matrix3f translation_rate_covariance = Eigen::Matrix3f::Zero();
@@ -501,18 +456,25 @@ namespace pointcloud_utils
 
 			//Get translation at sensor origin!!
 			pointcloud_utils::pointstruct origin_pt; //NOTE: this is designed to work best for a nearly horizontal plane
+
+			// // if goodness of fit, use the variance for all covariance values
+			// if (settings.covariance_type == PlaneParser::CovarianceType::GOODNESS_OF_FIT_ERROR ||
+			// 	settings.covariance_type == PlaneParser::CovarianceType::GOODNESS_OF_FIT_DISTANCE)
+			// {
+			// 	translation_covariance = Eigen::Matrix3f::Identity() * plane_parameters_covariance(0,0); //Set diagonals to the variance
+			// 	translation_rate_covariance = translation_covariance;
+			// }
 			
 			if (settings.report_offsets_at_origin)
 			{
 				//Offsets to plane at origin:
-				origin_pt.x = 1 / plane_coefficients[0];
-				origin_pt.y = 1 / plane_coefficients[1];
-				origin_pt.z = 1 / plane_coefficients[2];
+				origin_pt.x = 1 / plane_parameters.a;
+				origin_pt.y = 1 / plane_parameters.b;
+				origin_pt.z = 1 / plane_parameters.c;
 
 				//TODO: confirm error propogation: 
 				//translation_covariance = plane_parameters_covariance.inverse(); //TODO: I am not convinced of this logic. Let's just use the plane parameters covariance?
-
-				translation_covariance = plane_parameters_covariance;
+				translation_covariance = plane_parameters.covariance_matrix;
 
 				if (std::isnan(origin_pt.x) || std::isinf(origin_pt.x)) origin_pt.x = 0;
 				if (std::isnan(origin_pt.y) || std::isinf(origin_pt.y)) origin_pt.y = 0;				
@@ -520,7 +482,7 @@ namespace pointcloud_utils
 			} else
 			{
 				//Distance to plane from origin: https://mathinsight.org/distance_point_plane
-				float normal_magnitude = std::sqrt(std::pow(plane_coefficients[0], 2) + std::pow(plane_coefficients[1], 2) + std::pow(plane_coefficients[2], 2) );
+				float normal_magnitude = std::sqrt(std::pow(plane_parameters.a, 2) + std::pow(plane_parameters.b, 2) + std::pow(plane_parameters.c, 2) );
 				float distance = 1 / normal_magnitude;
 				//This distance is in the direction of the planar normal vector, [a, b, c]:
 				// sqrt(x2 + y2 + z2) = distance
@@ -533,11 +495,12 @@ namespace pointcloud_utils
 		
 				//std::cout << "Scale: " << scale << "\n";
 		
-				origin_pt.x = scale * plane_coefficients[0];
-				origin_pt.y = scale * plane_coefficients[1];
-				origin_pt.z = scale * plane_coefficients[2];
+				origin_pt.x = scale * plane_parameters.a;
+				origin_pt.y = scale * plane_parameters.b;
+				origin_pt.z = scale * plane_parameters.c;
 
-				translation_covariance = scale * plane_parameters_covariance;
+				//TODO: verify this
+				translation_covariance = scale * plane_parameters.covariance_matrix;
 			}
 
 			//if (std::isinf(origin_pt.x)) origin_pt.x = 0;
@@ -546,12 +509,15 @@ namespace pointcloud_utils
 			//TODO: how to do vel tracking if is inf?
 		
 			//std::cout << "origin pt: " << origin_pt.x << "\n";
+
 			//Get orientation of the plane:
 			double roll, pitch, yaw;
 			Eigen::Quaternion<float> quat;
-			getPlaneOrientation(plane_coefficients, orientation_covariance, roll, pitch, yaw, quat);
+			getPlaneOrientation(plane_parameters, orientation_covariance, roll, pitch, yaw, quat);
+
+
 			double elapsed_time = (this_state_time - last_state_time);
-			if (elapsed_time != 0 && continue_from_last_plane) //TODO: This may not work properly with quats yet
+			if (elapsed_time != 0 && settings.continue_from_last_plane) //TODO: This may not work properly with quats yet
 			{
 				//std::cout << "Elapsed time: " << elapsed_time << "\n";
 				//Find relative motion of track point:
@@ -572,16 +538,19 @@ namespace pointcloud_utils
 				plane_states.z_vel = (origin_pt.z - tracked_plane_states.z) / elapsed_time;
 
 				translation_rate_covariance = translation_covariance; //TODO: not convinced of this
-			}
-
-			// if goodness of fit, use the variance for all covariance values
-			if (settings.covariance_type == PlaneParser::CovarianceType::GOODNESS_OF_FIT_ERROR ||
-				settings.covariance_type == PlaneParser::CovarianceType::GOODNESS_OF_FIT_DISTANCE)
+			} else
 			{
-				translation_covariance = Eigen::Matrix3f::Identity() * plane_parameters_covariance(0,0); //Set diagonals to the variance
-				translation_rate_covariance = translation_covariance;
-				orientation_covariance = translation_covariance;
-				rotation_rate_covariance = translation_covariance;
+				plane_states.roll_vel = 0;
+				plane_states.pitch_vel = 0;
+				plane_states.yaw_vel = 0;
+
+				rotation_rate_covariance = Eigen::Matrix3f::Zero(); 
+
+				plane_states.x_vel = 0;
+				plane_states.y_vel = 0;
+				plane_states.z_vel = 0;
+
+				translation_rate_covariance = Eigen::Matrix3f::Zero();
 			}
 	
 			plane_states.roll = roll;
@@ -611,18 +580,13 @@ namespace pointcloud_utils
 			row4 = zeros, zeros, zeros, rotation_rate_covariance, zeros;
 
 			plane_states.covariance_matrix = row1, row2, row3, row4; //TODO: check this initialization sequence
-
-		} else
-		{
-			std::cout << "Warning! Point track method has not yet been implemented\n";
 		}
 	}
 
 	
 	/**
 	 * @Function 	getPlaneOrientation
-	 * @Param 		plane_coefficients - vector of plane equation coefficients, a/d, b/d, c/d, with variance
-	 * @param 		orientation_covariance - covariance for the found angles
+	 * @Param 		plane_parameters - a, b, c of plane equation with covariance
 	 * @param 		roll - roll angle of the plane (to be found, if requested)
 	 * @param 		pitch - pitch angle of the plane (to be found, if requested)
 	 * @param 		yaw - yaw angle of the plane (to be found, if requested)
@@ -630,7 +594,7 @@ namespace pointcloud_utils
 	 * @Return 		void
 	 * @Brief 		determines the orientation of the plane described by the given plane equation
 	 */
-	void PlaneParser::getPlaneOrientation(const Eigen::Vector3f& plane_coefficients, Eigen::Matrix3f& orientation_covariance, double& roll, double& pitch, double& yaw, Eigen::Quaternion<float>& quat)
+	void PlaneParser::getPlaneOrientation(const PlaneParser::PlaneParameters plane_parameters, Eigen::Matrix3f& orientation_covariance, double& roll, double& pitch, double& yaw, Eigen::Quaternion<float>& quat)
 	{
 		//TODO: get quaternion and break down into roll, pitch, yaw instead?
 
@@ -688,9 +652,9 @@ namespace pointcloud_utils
 		//Note: for some reason, this seems to give angles that are 90', or pi/2 from truth (at least for a horizontal plane!)
 
 		Eigen::Vector3f normal;
-		normal[0] = plane_coefficients[0];
-		normal[1] = plane_coefficients[1];
-		normal[2] = plane_coefficients[2];
+		normal[0] = plane_parameters.a;
+		normal[1] = plane_parameters.b;
+		normal[2] = plane_parameters.c;
 
 		//Normalize the normal vector:
 		double norm = std::sqrt(std::pow(normal[0], 2) + std::pow(normal[1], 2) + std::pow(normal[2], 2));
@@ -713,8 +677,12 @@ namespace pointcloud_utils
 		// /	}
 		//}
 
-		//Covariance linearization: http://www-labs.iro.umontreal.ca/~mignotte/IFT2425/Documents/EfficientApproximationArctgFunction.pdf for atan, https://socratic.org/questions/how-do-you-find-the-linearization-of-y-sin-1x-at-a-1-4 for asin
+		//Note on Covariance linearization: http://www-labs.iro.umontreal.ca/~mignotte/IFT2425/Documents/EfficientApproximationArctgFunction.pdf for atan, https://socratic.org/questions/how-do-you-find-the-linearization-of-y-sin-1x-at-a-1-4 for asin
 		// NOTE: neither atan nor asin are nicely linearized, so linearization for error propagation is unreasonable to attempt, if not impossible
+
+		//Basic idea to covariance: cov(angles) = G * cov(params) * G^T where G represents a linear transform done on params to get angles
+		// Issue: this is NOT a linear transform. Discussion: https://math.stackexchange.com/questions/2132503/the-covariance-matrix-after-a-functional-transformation
+		//  Basically, it says this ins't possible for a nonlinear transform outside of linearizing G
 
 		switch (settings.angle_solution_type)
 		{
@@ -811,8 +779,8 @@ namespace pointcloud_utils
 				if (std::isinf(pitch) || std::isnan(pitch)) pitch = 0;
 				if (std::isinf(roll) || std::isnan(roll)) roll = 0;
 				break;
-			}
-			default:
+			} 
+			case (PlaneParser::AngleSolutionType::QUATERNIONS):
 			{
 				//Find quaternions
 				// std::cout << "warning: Quaternion solution not yet implemented.\n";
@@ -860,6 +828,15 @@ namespace pointcloud_utils
     //     		    return quat.normalize(out, out);
     //     		}
 				quat = quat.FromTwoVectors(plane_normal, ref_normal);
+				break;
+			} 
+			default:
+			{
+				std::cout << "Warning! Unknown angle solution type. Returning zero orientaitons\n";
+				roll = 0;
+				pitch = 0;
+				yaw = 0;
+				quat = Eigen::Quaternionf(0, 0, 0, 0);
 
 			}
 		}//end switch
@@ -867,12 +844,12 @@ namespace pointcloud_utils
 
 	/**
 	 * @function 	getCovariance
-	 * @brief 		calculates the covariance matrix for the given plane
+	 * @brief 		calculates the covariance matrix for the given plane parameters
 	 * @param 		plane_parameters - place to save the covariance/variance
 	 * @param 		matricies - struct holding the matricies used in the least squares soltion
 	 * @return 		void
 	 */
-	void PlaneParser::getCovariance(PlaneParser::PlaneParameters& plane_parameters, const PlaneParser::LeastSquaresMatricies& matricies)
+	void PlaneParser::getPlaneParameterCovariance(PlaneParser::PlaneParameters& plane_parameters, const PlaneParser::LeastSquaresMatricies& matricies)
 	{
 		plane_parameters.covariance_matrix = Eigen::Matrix3f::Zero();
 		Eigen::VectorXf residual = matricies.points_matrix * matricies.plane_coefficients - matricies.sum_vector;
@@ -937,22 +914,23 @@ namespace pointcloud_utils
 				// Here is the proper SVD formula: 
 				// Cov(A) = A.transpose*A = V * E^2 * V.transpose
 // 				//matricies.points_matrix.transpose() * matricies.points_matrix; 
-				Eigen::MatrixXf cov_A = matricies.matrix_V * matricies.matrix_E.pow(2) * matricies.matrix_V.transpose();
+				Eigen::Matrix3f cov_A = matricies.matrix_V * matricies.matrix_E.pow(2) * matricies.matrix_V.transpose();
 				
 				std::cout << "A covariance: \n" << cov_A << "\n";
 				//2. cov(x) = diag(cov(A)) * (A.transpose() * A)^-1
 				//Note: I want to pul out the diagonals of cov A, hoping that it is a diagonal matrix
-				Eigen::MatrixXf cov_X = cov_A.diagonal() * (matricies.points_matrix.traspose() * matricies.points_matrix).inverse();
+				Eigen::MatrixXf cov_X = cov_A.diagonal() * (matricies.points_matrix.transpose() * matricies.points_matrix).inverse();
 				
-				std::cout << "Found covariance: \n" << cov_x << "\n";			
+				std::cout << "Found covariance: \n" << cov_X << "\n";			
 				
-				plane_parameters.covariance_matrix = cov_x;
+				plane_parameters.covariance_matrix = cov_X;
 				
 				break;
 			}
 			default:
 			{
-				//Should not get here
+				std::cout << "Warning! Unknown covariance solution type. Zeroing covariance\n";
+				plane_parameters.covariance_matrix = Eigen::Matrix3f::Zero();
 			}
 		}
 
@@ -972,19 +950,67 @@ namespace pointcloud_utils
 	
 	namespace plane_parser_utils
 	{
-		pointcloud_utils::PlaneParser::PlaneFitType convertPlaneFitType(const std::string& string_in)
+		PlaneParser::PlaneFitType convertPlaneFitType(const std::string& string_in)
 		{
-			if (string_in == "simple"" || string_in == "SIMPLE" || string_in == "Simple")
+			if (string_in == "simple" || string_in == "SIMPLE" || string_in == "Simple")
 			{
 				  return pointcloud_utils::PlaneParser::PlaneFitType::SIMPLE;
 			} else if (string_in == "SVD" || string_in == "svd")
 			{
 				return pointcloud_utils::PlaneParser::PlaneFitType::SVD;
 			} else
-			{
+			{	
+				std::cout << "Warning: Unknown plane fit type: " << string_in << "\n";
 				return pointcloud_utils::PlaneParser::PlaneFitType::UNKNOWN;
 			}
 		}
+
+		PlaneParser::CovarianceType convertCovarianceType(const std::string& string_in)
+		{
+			if (string_in == "goodness_of_fit_error" || string_in == "GOODNESS_OF_FIT_ERROR" || string_in == "Goodness_of_Fit_Error")
+			{
+				return pointcloud_utils::PlaneParser::CovarianceType::GOODNESS_OF_FIT_ERROR;
+			} else if (string_in == "goodness_of_fit_distance" || string_in == "GOODNESS_OF_FIT_DISTANCE" || string_in == "Goodness_of_Fit_Distance")
+			{
+				return pointcloud_utils::PlaneParser::CovarianceType::GOODNESS_OF_FIT_DISTANCE;
+			} else if (string_in == "analytical" || string_in == "ANALYTICAL" || string_in == "Analytical")
+			{
+				return pointcloud_utils::PlaneParser::CovarianceType::ANALYTICAL;
+			} else if (string_in == "monte_carlo" || string_in == "MONTE_CARLO" || string_in == "Monte_Carlo")
+			{
+				return pointcloud_utils::PlaneParser::CovarianceType::MONTE_CARLO;
+			} else if (string_in == "least_squares" || string_in == "LEAST_SQUARES" || string_in == "Least_Squares")
+			{
+				return pointcloud_utils::PlaneParser::CovarianceType::LEAST_SQUARES;
+			} else
+			{
+				std::cout << "Warning: Unknown covariance type: " << string_in << "\n";
+				return pointcloud_utils::PlaneParser::CovarianceType::UNKNOWN;
+			}
+		}
+
+
+		PlaneParser::AngleSolutionType convertAngleSolutionType(const std::string& string_in)
+		{
+			if (string_in == "attitude_angles" || string_in == "ATTITUDE_ANGLES" || string_in == "Attitude_Angles")
+			{
+				return pointcloud_utils::PlaneParser::AngleSolutionType::ATTITUDE_ANGLES;
+			} else if (string_in == "euler_angles" || string_in == "EULER_ANGLES" || string_in == "Euler_Angles")
+			{
+				return pointcloud_utils::PlaneParser::AngleSolutionType::EULER_ANGLES;
+			} else if (string_in == "simple_angles" || string_in == "SIMPLE_ANGLES" || string_in == "Simple_Angles")
+			{
+				return pointcloud_utils::PlaneParser::AngleSolutionType::SIMPLE_ANGLES;
+			} else if (string_in == "quaternions" || string_in == "QUATERNIONS" || string_in == "Quaternions")
+			{
+				return pointcloud_utils::PlaneParser::AngleSolutionType::QUATERNIONS;
+			} else
+			{
+				std::cout << "Warning: Unknown angle solution type: " << string_in << "\n";
+				return pointcloud_utils::PlaneParser::AngleSolutionType::UNKNOWN;
+			}
+		}
+
 	}
 	
 

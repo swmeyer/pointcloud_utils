@@ -21,7 +21,7 @@
 
 // --------------------------
 bool print_plane_states;
-bool continue_from_last_plane;
+bool print_plane_parameters;
 bool visualize_plane;
 pointcloud_utils::PlaneParser::pointValueIndex plane_direction;
 
@@ -257,7 +257,7 @@ void pointCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& msg)
 	pointcloud_utils::PlaneParser::States plane_states;
 
 
-	plane_parser->parsePlane(msg, cloud, filtered_points, plane_parameters, plane_states, search_window, continue_from_last_plane);
+	plane_parser->parsePlane(msg, cloud, filtered_points, plane_parameters, plane_states, search_window);
 	
 
 	//std::cout << "Points in parsed cloud " << cloud_parsed.size() << "\n";
@@ -283,6 +283,11 @@ void pointCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& msg)
 
 	Eigen::Vector3f plane_coefficients;
 	plane_coefficients << plane_parameters.a_d, plane_parameters.b_d, plane_parameters.c_d;
+
+	if (print_plane_parameters)
+	{
+		std::cout << plane_coefficients(0) << ", " << plane_coefficients(1) << ", " << plane_coefficients(2) << "\n";
+	}
 
 	//visualize cloud!
 	if (visualize_plane)
@@ -329,6 +334,16 @@ int main(int argc, char* argv[])
 	n_.param<std::string>("visualization_topic", marker_pub_topic, "/markers");
 
 	n_.param<bool>("print_plane_states", print_plane_states, false);
+	n_.param<bool>("print_plane_parameters", print_plane_parameters, false);
+
+	std::string plane_fit_type, covariance_solution_type, angle_solution_type;
+	n_.param<std::string>("covariance_solution_type", covariance_solution_type, "goodness_of_fit_error");
+	n_.param<std::string>("plane_fit_type", plane_fit_type, "svd");
+	n_.param<std::string>("angle_solution_type", angle_solution_type, "euler_angles");
+	
+	settings.plane_fit_type = pointcloud_utils::plane_parser_utils::convertPlaneFitType(plane_fit_type);
+    settings.covariance_type = pointcloud_utils::plane_parser_utils::convertCovarianceType(covariance_solution_type);
+	settings.angle_solution_type = pointcloud_utils::plane_parser_utils::convertAngleSolutionType(angle_solution_type);
 
 	n_.param<bool>("use_point_track_method", settings.use_point_track_method, false);
 
@@ -357,15 +372,11 @@ int main(int argc, char* argv[])
 	n_.param<int>("max_plane_fit_iterations", settings.max_iterations, 10 );
 	n_.param<float>("outlier_point_tolerance", settings.outlier_tolerance, 0.1);
 	n_.param<bool>("visualize_plane", visualize_plane, true);
-	n_.param<bool>("track_plane_states_over_time", continue_from_last_plane, false);
+	n_.param<bool>("track_plane_states_over_time", settings.continue_from_last_plane, false);
 
 	n_.param<int>("min_points_to_fit", settings.min_points_to_fit, 20);
     n_.param<bool>("report_offsets_at_origin", settings.report_offsets_at_origin, false);
-	std::string plane_fit_type;
-	n_.param<std::string>("plane_fit_type", plane_fit_type, "svd");
 	
-	settings.plane_fit_type = pointcloud_utils::convertPlaneFitType(plane_fit_type);
-    
 	plane_parser = new pointcloud_utils::PlaneParser(settings);
 	
 

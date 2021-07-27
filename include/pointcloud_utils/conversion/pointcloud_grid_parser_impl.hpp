@@ -307,13 +307,13 @@ namespace pointcloud_utils
 		//if ((initialize && settings.use_first) || (!settings.use_first))
 		//{
 			//std::cout << "Map height, width: " << map_height << ", " << map_width << "\n";
-			grid = Eigen::MatrixXf::Constant(settings.map_height, settings.map_width, pointcloud_utils::costmapValues::UNKNOWN);
+			grid = Eigen::MatrixXf::Constant(settings.map_height, settings.map_width, (int) pointcloud_utils::costmapValues::UNKNOWN);
 			//grid_bytes.resize(settings.map_height * settings.map_width);
 			//map_grid_bytes.resize(settings.map_height * settings.map_width);
 			grid_bytes.clear();
 			map_grid_bytes.clear();
-			grid_bytes = std::vector<uint8_t>(settings.map_height * settings.map_width, pointcloud_utils::costmapValues::UNKNOWN);
-			map_grid_bytes = std::vector<uint8_t>(settings.map_height * settings.map_width, pointcloud_utils::costmapValues::UNKNOWN);
+			grid_bytes = std::vector<uint8_t>(settings.map_height * settings.map_width, (int) pointcloud_utils::costmapValues::UNKNOWN);
+			map_grid_bytes = std::vector<uint8_t>(settings.map_height * settings.map_width, (int) pointcloud_utils::costmapValues::UNKNOWN);
 		//} else
 		//{
 		//	grid = Eigen::MatrixXf::Constant(grid.rows(), grid.cols(), pointcloud_utils::costmapValues::UNKNOWN);
@@ -423,8 +423,8 @@ namespace pointcloud_utils
 			if (i < settings.map_height && j < settings.map_width && i >= 0 && j >= 0 && pt.z > settings.z_min && pt.z < settings.z_max)
 			{
 				//mark solid objects
-				map_grid_bytes[settings.map_width * (settings.map_height - i) + (settings.map_width - j)] = pointcloud_utils::costmapValues::OCCUPIED;
-				grid_bytes[settings.map_width * i + j] = pointcloud_utils::costmapValues::OCCUPIED;  
+				map_grid_bytes[settings.map_width * (settings.map_height - i) + (settings.map_width - j)] = (int) pointcloud_utils::costmapValues::OCCUPIED;
+				grid_bytes[settings.map_width * i + j] = (int) pointcloud_utils::costmapValues::OCCUPIED;  
 				pass_count++;
 			} else
 			{
@@ -454,11 +454,11 @@ namespace pointcloud_utils
 				{
 					if (n < settings.map_height && m < settings.map_width && n >= 0 && m >= 0)
 					{
-						if (grid_bytes[settings.map_width * n + m] != pointcloud_utils::costmapValues::OCCUPIED)
+						if (grid_bytes[settings.map_width * n + m] != (int) pointcloud_utils::costmapValues::OCCUPIED)
 						{
 							//mark freespace
-							map_grid_bytes[settings.map_width * (settings.map_height - n) + (settings.map_width - m)] = pointcloud_utils::costmapValues::FREE;
-							grid_bytes[settings.map_width * n + m] = pointcloud_utils::costmapValues::FREE;  
+							map_grid_bytes[settings.map_width * (settings.map_height - n) + (settings.map_width - m)] = (int) pointcloud_utils::costmapValues::FREE;
+							grid_bytes[settings.map_width * n + m] = (int) pointcloud_utils::costmapValues::FREE;  
 						} else
 						{
 							//save minimal point
@@ -508,11 +508,11 @@ namespace pointcloud_utils
 					//if point within bounds, use it to populate the grid
 					if (n < settings.map_height && m < settings.map_width && n >= 0 && m >= 0)
 					{
-						if (grid_bytes[settings.map_width * n + m] != pointcloud_utils::costmapValues::OCCUPIED)
+						if (grid_bytes[settings.map_width * n + m] != (int) pointcloud_utils::costmapValues::OCCUPIED)
 						{
 							//mark freespace
-							map_grid_bytes[settings.map_width * (settings.map_height - n) + (settings.map_width - m)] = pointcloud_utils::costmapValues::FREE;
-							grid_bytes[settings.map_width * n + m] = pointcloud_utils::costmapValues::FREE;  
+							map_grid_bytes[settings.map_width * (settings.map_height - n) + (settings.map_width - m)] = (int) pointcloud_utils::costmapValues::FREE;
+							grid_bytes[settings.map_width * n + m] = (int) pointcloud_utils::costmapValues::FREE;  
 						}  else
 						{
 							//save minimal point
