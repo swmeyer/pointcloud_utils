@@ -677,12 +677,35 @@ namespace pointcloud_utils
 		// /	}
 		//}
 
-		//Note on Covariance linearization: http://www-labs.iro.umontreal.ca/~mignotte/IFT2425/Documents/EfficientApproximationArctgFunction.pdf for atan, https://socratic.org/questions/how-do-you-find-the-linearization-of-y-sin-1x-at-a-1-4 for asin
-		// NOTE: neither atan nor asin are nicely linearized, so linearization for error propagation is unreasonable to attempt, if not impossible
-
-		//Basic idea to covariance: cov(angles) = G * cov(params) * G^T where G represents a linear transform done on params to get angles
-		// Issue: this is NOT a linear transform. Discussion: https://math.stackexchange.com/questions/2132503/the-covariance-matrix-after-a-functional-transformation
-		//  Basically, it says this ins't possible for a nonlinear transform outside of linearizing G
+		//if (settings.angle_covariance_type == pointcloud_utils::PlaneParser::AngleCovarianceType::LINEAR_APPROXIMATION)
+		//{
+			//Note on Covariance linearization: http://www-labs.iro.umontreal.ca/~mignotte/IFT2425/Documents/EfficientApproximationArctgFunction.pdf for atan, https://socratic.org/questions/how-do-you-find-the-linearization-of-y-sin-1x-at-a-1-4 for asin
+			// NOTE: neither atan nor asin are nicely linearized, so linearization for error propagation is unreasonable to attempt, if not impossible
+	
+			//Basic idea to covariance: cov(angles) = G * cov(params) * G^T where G represents a linear transform done on params to get angles
+			// Issue: this is NOT a linear transform. Discussion: https://math.stackexchange.com/questions/2132503/the-covariance-matrix-after-a-functional-transformation
+			//  Basically, it says this ins't possible for a nonlinear transform outside of linearizing G
+			//Reverse-linearizing the roll, pitch, into a, b, c normal vector components, we get this approximation:
+			orientation_covariance(0,0) = 0;
+			orientation_covariance(1,1) = plane_parameters.covariance_matrix(0,0);
+			orientation_covariance(2,2) = plane_parameters.covariance_matrix(1,1);
+		//} else if (settings.angle_covariance_type == pointcloud_utils::PlaneParser::AngleCovarianceType::HIGHER_ORDER_UNSCENTED_TRANSFORM)
+		//{	
+		//	std::cout << "Still figuring out this transform\n";
+		//	//float roll_mean, roll_var;
+		//	//higherOrderUnscentedTransform(plane_parameters.covariance_matrix(0,0), roll_mean, roll_var);
+		//	//Jordan Britt paper: https://etd.auburn.edu/xmlui/bitstream/handle/10415/2366/thesis_Britt_FINAL.pdf?sequence=2&isAllowed=y
+		//	
+		//	//float s_naut = plane_parameters.a;
+		//	//float sigma_1 = (5 + std::sqrt(10)) * plane_parameters.covariance_matrix(0,0) / 3;
+		//	//float sigma_2 = (5 - std::sqrt(10)) * plane_parameters.covariance_matrix(0,0) / 3;
+		//	//float s_0 = s_naut + sigma_1;
+		//	//float s_1 = s_naut + sigma_2;
+		//	//float s_2 = s_naut - sigma_1;
+		//	//float s_3 = s_naut - sigma_2;
+////
+		//	//float w_1 = () / ();
+		//}
 
 		switch (settings.angle_solution_type)
 		{
