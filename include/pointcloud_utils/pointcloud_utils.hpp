@@ -125,7 +125,6 @@ namespace pointcloud_utils
 	// template <class T> void convertToPointCloud2(const std::vector<T>& cloud, sensor_msgs::PointCloud2& msg);
 	// template<> void convertToPointCloud2<pointsruct>(const std::vector<pointcloud_utils::pointstruct>& cloud, sensor_msgs::PointCloud2& msg);
 	
-
 	/** 
 	 * @function 	convertFromPointCloud2
 	 * @brief 		convert the given pointcloud2 message into a point vector

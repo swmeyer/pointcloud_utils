@@ -132,6 +132,9 @@ namespace pointcloud_utils
 
 		//Filter the cloud by the search window and intensity
 		filterCloud( cloud, filtered_cloud, search_window, intensity_min, intensity_max);
+		
+		// std::cout << "Fitting " << filtered_cloud.size() << " points\n";
+		std::cout << filtered_cloud.size() << "\n";
 
 		//Fit a plane to the filtered points
 		PlaneParser::LeastSquaresMatricies least_squares_matricies;
@@ -339,9 +342,10 @@ namespace pointcloud_utils
 			matricies.plane_coefficients = svd.solve(matricies.sum_vector);
 			matricies.matrix_U = svd.matrixU();
 			matricies.matrix_V = svd.matrixV();
-			//matricies.matrix_E = svd.singularValues() * Eigen::Matrix3f::Identity(); //TODO: check this
-			//std::cout << "Sigma matrix: \n" << matricies.matrix_E << "\n";
-			std::cout << "Singular values:\n" << svd.singularValues() << "\n";
+			matricies.matrix_E << svd.singularValues()(0), 0, 0,
+								  0, svd.singularValues()(1), 0,
+								  0, 0, svd.singularValues()(2);
+			// std::cout << "Sigma matrix: \n" << matricies.matrix_E << "\n";
 		} else
 		{
 			std::cout << "Plane fit option unknown. Zeroing plane coefficient results\n";
@@ -569,17 +573,13 @@ namespace pointcloud_utils
 		
 			//plane_states.variance = plane_coefficients[3];
 			plane_states.variance = translation_covariance(0,0);
-			Eigen::MatrixXf row1(3, 12);
-			Eigen::MatrixXf row2(3, 12);
-			Eigen::MatrixXf row3(3, 12);
-			Eigen::MatrixXf row4(3, 12);
 
-			row1 = translation_covariance, zeros, zeros, zeros;
-			row2 = zeros, orientation_covariance, zeros, zeros;
-			row3 = zeros, zeros, translation_rate_covariance, zeros;
-			row4 = zeros, zeros, zeros, rotation_rate_covariance, zeros;
-
-			plane_states.covariance_matrix = row1, row2, row3, row4; //TODO: check this initialization sequence
+			plane_states.covariance_matrix.block<3,3>(0,0) = translation_covariance;
+			plane_states.covariance_matrix.block<3,3>(3,3) = orientation_covariance;
+			plane_states.covariance_matrix.block<3,3>(6,6) = translation_rate_covariance;
+			plane_states.covariance_matrix.block<3,3>(9,9) = rotation_rate_covariance;
+			
+			//std::cout << "Covariance matrix internal: \n" << plane_states.covariance_matrix << "\n\n";
 		}
 	}
 
@@ -689,6 +689,9 @@ namespace pointcloud_utils
 			orientation_covariance(0,0) = 0;
 			orientation_covariance(1,1) = plane_parameters.covariance_matrix(0,0);
 			orientation_covariance(2,2) = plane_parameters.covariance_matrix(1,1);
+			
+			// std::cout << "Orientation covariance: \n" << orientation_covariance << "\n";
+
 		//} else if (settings.angle_covariance_type == pointcloud_utils::PlaneParser::AngleCovarianceType::HIGHER_ORDER_UNSCENTED_TRANSFORM)
 		//{	
 		//	std::cout << "Still figuring out this transform\n";
@@ -875,7 +878,7 @@ namespace pointcloud_utils
 	void PlaneParser::getPlaneParameterCovariance(PlaneParser::PlaneParameters& plane_parameters, const PlaneParser::LeastSquaresMatricies& matricies)
 	{
 		plane_parameters.covariance_matrix = Eigen::Matrix3f::Zero();
-		Eigen::VectorXf residual = matricies.points_matrix * matricies.plane_coefficients - matricies.sum_vector;
+		Eigen::VectorXf residual = (matricies.points_matrix * matricies.plane_coefficients) - matricies.sum_vector;
 		switch(settings.covariance_type)
 		{
 			case (pointcloud_utils::PlaneParser::CovarianceType::GOODNESS_OF_FIT_ERROR):
@@ -932,21 +935,46 @@ namespace pointcloud_utils
 			}
 			case (pointcloud_utils::PlaneParser::CovarianceType::LEAST_SQUARES):
 			{
-				std::cout << "Warning: Least Squares covariance has not been tested yet\n";
+				// std::cout << "Warning: Least Squares covariance has not been tested yet\n";
 				//1. Either use capital sigma from the SVD solution as the covariance of A, or calculate it according to the covariance from SVD formula:
 				// Here is the proper SVD formula: 
 				// Cov(A) = A.transpose*A = V * E^2 * V.transpose
 // 				//matricies.points_matrix.transpose() * matricies.points_matrix; 
-				Eigen::Matrix3f cov_A = matricies.matrix_V * matricies.matrix_E.pow(2) * matricies.matrix_V.transpose();
-				
-				std::cout << "A covariance: \n" << cov_A << "\n";
+				// std::cout << "SVD results V, E: \n" << matricies.matrix_V << "\n\n" << matricies.matrix_E << "\n";
+				//Eigen::Matrix3f cov_A = matricies.matrix_V * matricies.matrix_E.square * matricies.matrix_V.transpose();
+				Eigen::Matrix3f cov_A = matricies.matrix_E.array().square();
+				// std::cout << "A covariance: \n" << cov_A << "\n";
 				//2. cov(x) = diag(cov(A)) * (A.transpose() * A)^-1
 				//Note: I want to pul out the diagonals of cov A, hoping that it is a diagonal matrix
-				Eigen::MatrixXf cov_X = cov_A.diagonal() * (matricies.points_matrix.transpose() * matricies.points_matrix).inverse();
+				//std::cout << "A' * A: \n" << matricies.points_matrix.transpose() * matricies.points_matrix << "\n";
+				// std::cout << "A diagonals: \n" << cov_A.diagonal() << "\n";
+				// Eigen::MatrixXf cov_X = cov_A.diagonal().transpose() * (matricies.points_matrix.transpose() * matricies.points_matrix).inverse();
+				// 
+				// std::cout << "Found covariance: \n" << cov_X << "\n";			
+				// 
+				// plane_parameters.covariance_matrix = cov_X;
 				
-				std::cout << "Found covariance: \n" << cov_X << "\n";			
+				// std::cout << "Residual: \n" << residual << "\n\n";
+				// float residual_mean = residual.mean();
+				Eigen::VectorXf temp_vec = Eigen::VectorXf::Constant(residual.size(), residual.mean());
+				// std::cout << "Residual mean: " << residual.mean() << "\n";
+				// std::cout << "Test: \n" << residual - temp_vec << "\n";
+				float standard_dev = std::sqrt(((residual - temp_vec).array().square().sum() / residual.size()) );
+				// std::cout << "standard deviation: " << standard_dev << "\n";
+				float standard_error = standard_dev / std::sqrt(residual.size());
+				// std::cout << "standard error: " << standard_error << "\n";
+
+				//https://sciencing.com/calculate-variance-standard-error-6372721.html
+				// Variance from the standard error:
+				float variance = std::pow(standard_error, 2) * residual.size();
+				// std::cout << "variance: " << variance << "\n";
+
+				Eigen::MatrixXf cov_X = variance * (matricies.points_matrix.transpose() * matricies.points_matrix).inverse();
 				
+				// std::cout << "Found covariance: \n" << cov_X << "\n";			
+				 
 				plane_parameters.covariance_matrix = cov_X;
+				
 				
 				break;
 			}
