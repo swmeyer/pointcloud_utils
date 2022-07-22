@@ -195,10 +195,12 @@ class GridGroundRemovalNode : public rclcpp::Node
             memcpy(&(out_msg.data[0]), &(out_cloud[0]), out_msg.row_step);
 
             this->_nonground_pub->publish(out_msg);
+            RCLCPP_INFO(this->get_logger(), "Published nonground points");
         }
 
         void _pointCloudCallBack(const PointCloud2::SharedPtr msg)
         {
+            RCLCPP_INFO(this->get_logger(), "Received new cloud");
             this->_height_accum.clear();
             this->_index_accum.clear();
 

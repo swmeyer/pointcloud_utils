@@ -6,7 +6,10 @@
 
 // --------------------------
 #include "rclcpp/rclcpp.hpp"
+
+#include <rosbag2_cpp/readers/sequential_reader.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
+#include <std_msgs/msg/bool.hpp>
 
 // #include <Eigen/Dense>
 
@@ -15,6 +18,7 @@
 
 #include <chrono>
 #include <mutex>
+#include <thread>
 
 // --------------------------
 
@@ -22,7 +26,11 @@ class PointCloudCombinerNode : public rclcpp::Node
 {
 	public:
 		PointCloudCombinerNode() :
-			Node("point_cloud_combiner_node")
+			Node("point_cloud_combiner_node"), 
+			has_new_cloud1(false),
+			has_new_cloud2(false),
+			has_new_cloud3(false),
+			finished_received(false)
 		{
 			//main content
 			
@@ -43,6 +51,10 @@ class PointCloudCombinerNode : public rclcpp::Node
 			this->declare_parameter<bool>("invert_point_crop", false);
 
 			this->declare_parameter<bool>("drop_old_clouds", false);
+			this->declare_parameter<bool>("read_from_bag", false);
+            this->declare_parameter<std::string>("bagfile", "../rosbag2_test_data");
+			this->declare_parameter<bool>("wait_for_finish_msg", false);
+			this->declare_parameter<std::string>("finish_msg_topic", "/walls_finished");
 
 			this->declare_parameter<bool>("invert_tf", false);
 
@@ -69,27 +81,31 @@ class PointCloudCombinerNode : public rclcpp::Node
 
 
 			//get params
-			std::string cloud_topic1, cloud_topic2, cloud_topic3, cloud_out_topic;
+			std::string cloud_out_topic, finish_msg_topic;
 			double rate;
 
-			this->get_parameter<std::string>("cloud_topic1", cloud_topic1);
-			this->get_parameter<std::string>("cloud_topic2", cloud_topic2);
-			this->get_parameter<std::string>("cloud_topic3", cloud_topic3);
+			this->get_parameter<std::string>("cloud_topic1", this->cloud_topic1);
+			this->get_parameter<std::string>("cloud_topic2", this->cloud_topic2);
+			this->get_parameter<std::string>("cloud_topic3", this->cloud_topic3);
 			this->get_parameter<std::string>("target_frame", this->target_frame);
 			this->get_parameter<std::string>("cloud_out_topic", cloud_out_topic);
 
 			this->get_parameter<bool>("use_luminar_pointstruct", this->use_luminar_pointstruct);
 			this->get_parameter<double>("rate", rate);
-			this->get_parameter<bool>("use_current_time", this->use_current_time);
-			this->get_parameter<bool>("wait_for_sync", this->wait_for_sync);
+			this->get_parameter<bool>("use_current_time", 	this->use_current_time);
+			this->get_parameter<bool>("wait_for_sync", 		this->wait_for_sync);
 			this->get_parameter<double>("old_cloud_timeout", this->old_cloud_timeout);
 
-			this->get_parameter<int>("max_num_points", this->max_num_points);
-			this->get_parameter<bool>("invert_point_crop", this->invert_point_crop);
+			this->get_parameter<int>("max_num_points", 		this->max_num_points);
+			this->get_parameter<bool>("invert_point_crop", 	this->invert_point_crop);
 
-			this->get_parameter<bool>("drop_old_clouds", this->drop_old_clouds);
+			this->get_parameter<bool>("drop_old_clouds", 	this->drop_old_clouds);
+			this->get_parameter<bool>("read_from_bag", 		this->read_from_bag);
+            this->get_parameter<std::string>("bagfile", this->bagfile);
+			this->get_parameter<bool>("wait_for_finish_msg", this->wait_for_finish_msg);
+			this->get_parameter<std::string>("finish_msg_topic", finish_msg_topic);
 
-			this->get_parameter<bool>("invert_tf", this->invert_tf);
+			this->get_parameter<bool>("invert_tf", 			this->invert_tf);
 
 			this->get_parameter<double>("x_trans_1", tf1.x);
 			this->get_parameter<double>("y_trans_1", tf1.y);
@@ -112,21 +128,34 @@ class PointCloudCombinerNode : public rclcpp::Node
 			this->get_parameter<double>("pitch_3", 	tf3.pitch);
 			this->get_parameter<double>("yaw_3", 	tf3.yaw);
 
+			if (this->wait_for_finish_msg)
+			{
+				this->finished_msg_sub = this->create_subscription<std_msgs::msg::Bool>(finish_msg_topic, 1, std::bind(&PointCloudCombinerNode::finishMsgCallback, this, std::placeholders::_1));
+			}
 
-			cloud_sub1 = this->create_subscription<sensor_msgs::msg::PointCloud2>(cloud_topic1, rclcpp::SensorDataQoS(), std::bind(&PointCloudCombinerNode::pointCloudCallback1, this, std::placeholders::_1));
-			cloud_sub2 = this->create_subscription<sensor_msgs::msg::PointCloud2>(cloud_topic2, rclcpp::SensorDataQoS(), std::bind(&PointCloudCombinerNode::pointCloudCallback2, this, std::placeholders::_1));
-			cloud_sub3 = this->create_subscription<sensor_msgs::msg::PointCloud2>(cloud_topic3, rclcpp::SensorDataQoS(), std::bind(&PointCloudCombinerNode::pointCloudCallback3, this, std::placeholders::_1));
-
-			cloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>(cloud_out_topic, rclcpp::SensorDataQoS());
+			this->cloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>(cloud_out_topic, rclcpp::SensorDataQoS());
 
 			RCLCPP_INFO(this->get_logger(), "ms delay: %d", (int) ((1/rate) * 1000));
 
-			timer = this->create_wall_timer(std::chrono::milliseconds( (int) ((1/rate) * 1000) ), std::bind(&PointCloudCombinerNode::timerCallback, this));
+			if (this->read_from_bag)
+			{
 
+  				this->bagread_thread = new std::thread(std::bind(&PointCloudCombinerNode::readFromBag, this));
+				bagread_thread->detach();
+			} else
+			{
+				this->cloud_sub1 = this->create_subscription<sensor_msgs::msg::PointCloud2>(this->cloud_topic1, rclcpp::SensorDataQoS(), std::bind(&PointCloudCombinerNode::pointCloudCallback1, this, std::placeholders::_1));
+				this->cloud_sub2 = this->create_subscription<sensor_msgs::msg::PointCloud2>(this->cloud_topic2, rclcpp::SensorDataQoS(), std::bind(&PointCloudCombinerNode::pointCloudCallback2, this, std::placeholders::_1));
+				this->cloud_sub3 = this->create_subscription<sensor_msgs::msg::PointCloud2>(this->cloud_topic3, rclcpp::SensorDataQoS(), std::bind(&PointCloudCombinerNode::pointCloudCallback3, this, std::placeholders::_1));
+			}
+
+			timer = this->create_wall_timer(std::chrono::milliseconds( (int) ((1/rate) * 1000) ), std::bind(&PointCloudCombinerNode::timerCallback, this));
 		}
 
 		~PointCloudCombinerNode()
 		{
+			this->bagread_thread->join();
+			delete this->bagread_thread;
 		}
 
 	private:
@@ -138,9 +167,16 @@ class PointCloudCombinerNode : public rclcpp::Node
 		std::string target_frame; //frame to report the final cloud in
 		double old_cloud_timeout; //[s] amount of time to maintain old clouds
 
+		std::thread* bagread_thread;
+
+		std::string cloud_topic1, cloud_topic2, cloud_topic3;
+		std::string bagfile;
+
 		int max_num_points;
 		bool invert_point_crop;
 		bool drop_old_clouds; 
+		bool read_from_bag;
+		bool wait_for_finish_msg;
 
 		sensor_msgs::msg::PointCloud2 cloud1;
 		sensor_msgs::msg::PointCloud2 cloud2;
@@ -157,6 +193,7 @@ class PointCloudCombinerNode : public rclcpp::Node
 		bool has_new_cloud1;
 		bool has_new_cloud2;
 		bool has_new_cloud3;
+		bool finished_received;
 
 		std::mutex cloud1_mutex;
 		std::mutex cloud2_mutex;
@@ -167,6 +204,7 @@ class PointCloudCombinerNode : public rclcpp::Node
 		
 		rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr cloud_pub;
 
+		rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr finished_msg_sub;
 		rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr cloud_sub1;
 		rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr cloud_sub2;
 		rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr cloud_sub3;
@@ -177,19 +215,157 @@ class PointCloudCombinerNode : public rclcpp::Node
 
 		//Methods
 
+		bool processMessage(const std::shared_ptr<rosbag2_storage::SerializedBagMessage> serialized_msg, const std::string& topic_type, sensor_msgs::msg::PointCloud2& return_msg)
+        {
+    	
+    		if (topic_type != "sensor_msgs/msg/PointCloud2")
+    		{
+    			return false;
+    		}
+
+            // deserialization and conversion to ros message
+            auto ros_message = std::make_shared<rosbag2_cpp::rosbag2_introspection_message_t>();
+            ros_message->time_stamp = 0;
+            ros_message->message = nullptr;
+            ros_message->allocator = rcutils_get_default_allocator();
+
+            rosbag2_cpp::SerializationFormatConverterFactory factory;
+            std::unique_ptr<rosbag2_cpp::converter_interfaces::SerializationFormatDeserializer> cdr_deserializer;
+            cdr_deserializer = factory.load_deserializer("cdr");
+
+            const rosidl_message_type_support_t * type_support = rosidl_typesupport_cpp::get_message_type_support_handle<sensor_msgs::msg::PointCloud2>();
+            sensor_msgs::msg::PointCloud2 msg;
+            ros_message->message = &msg;
+            cdr_deserializer->deserialize(serialized_msg, type_support, ros_message);
+
+            return_msg = msg;
+
+            return true;
+        }
+
+		void readFromBag()
+		{
+        	rosbag2_cpp::readers::SequentialReader* reader = new rosbag2_cpp::readers::SequentialReader();
+        	rosbag2_cpp::StorageOptions storage_options{};
+			rosbag2_cpp::ConverterOptions converter_options{};
+
+            storage_options.uri = this->bagfile;
+            storage_options.storage_id = "sqlite3";
+
+            converter_options.input_serialization_format = "cdr";
+            converter_options.output_serialization_format = "cdr";
+
+            reader->open(storage_options, converter_options);            
+            std::vector<rosbag2_storage::TopicMetadata> topics = reader->get_all_topics_and_types();
+
+            // metadata
+            std::map<std::string, std::string> topics_map;
+            for (rosbag2_storage::TopicMetadata topic:topics)
+            {
+                topics_map.insert(std::pair<std::string, std::string>(topic.name, topic.type));
+            }
+
+            // read and deserialize "serialized data"
+            while (reader->has_next())
+            {
+                // serialized data
+                std::shared_ptr<rosbag2_storage::SerializedBagMessage> serialized_message = reader->read_next();
+
+                std::string topic_type = topics_map[serialized_message->topic_name];
+                // std::cout << "Topic: " << topic_type << "\n";
+                if (topic_type != "sensor_msgs/msg/PointCloud2")
+                {
+                	continue;
+                }
+
+                bool has_all_clouds = false;
+
+                std::string topic_name = serialized_message->topic_name;
+                sensor_msgs::msg::PointCloud2 msg;
+                if (topic_name == this->cloud_topic1)
+                {
+                	if (!this->processMessage(serialized_message, topic_type, msg))
+                	{
+                		continue;
+                	}
+                	std::lock_guard<std::mutex> guard(this->cloud1_mutex);
+					this->cloud1 = msg;
+					this->last_header = msg.header;
+					this->cloud1_time = rclcpp::Clock().now();
+					this->has_new_cloud1 = true;
+					has_all_clouds = (this->has_new_cloud1 && this->has_new_cloud2 && this->has_new_cloud3);
+					// RCLCPP_INFO(this->get_logger(), "Found cloud1");
+                } else if (topic_name == this->cloud_topic2)
+                {
+                	if (!this->processMessage(serialized_message, topic_type, msg))
+                	{
+                		continue;
+                	}
+                	std::lock_guard<std::mutex> guard(this->cloud1_mutex);
+					this->cloud2 = msg;
+					this->last_header = msg.header;
+					this->cloud2_time = rclcpp::Clock().now();
+					this->has_new_cloud2 = true;
+					has_all_clouds = (this->has_new_cloud1 && this->has_new_cloud2 && this->has_new_cloud3);
+					// RCLCPP_INFO(this->get_logger(), "Found cloud2");
+                } else if (topic_name == this->cloud_topic3)
+                {
+                	if (!this->processMessage(serialized_message, topic_type, msg))
+                	{
+                		continue;
+                	}
+                	std::lock_guard<std::mutex> guard(this->cloud1_mutex);
+					this->cloud3 = msg;
+					this->last_header = msg.header;
+					this->cloud3_time = rclcpp::Clock().now();
+					this->has_new_cloud3 = true;
+					has_all_clouds = (this->has_new_cloud1 && this->has_new_cloud2 && this->has_new_cloud3);
+					// RCLCPP_INFO(this->get_logger(), "Found cloud3");
+                }
+
+                if (this->wait_for_finish_msg && has_all_clouds)
+                {
+                	RCLCPP_INFO(this->get_logger(), "waiting for finish process");
+                	while(!this->finished_received && rclcpp::ok())
+                	{
+
+                	}
+                	RCLCPP_INFO(this->get_logger(), "received process finished message!");
+                	this->finished_received = false;
+                }
+
+                
+            }
+		}
+
 		void timerCallback()
 		{
+
+			// RCLCPP_INFO(this->get_logger(), "timer called");
+
 			std::unique_lock<std::mutex> lock1(this->cloud1_mutex);
 			std::unique_lock<std::mutex> lock2(this->cloud2_mutex);
 			std::unique_lock<std::mutex> lock3(this->cloud3_mutex);
 
+			if (!has_new_cloud1 && !has_new_cloud2 && !has_new_cloud3)
+			{
+				// RCLCPP_INFO(this->get_logger(), "waiting for more clouds to come in");
+				return;
+			}
 			if (wait_for_sync)
 			{
 				if (!this->has_new_cloud1 || !this->has_new_cloud2 || !this->has_new_cloud3)
 				{
+					// RCLCPP_INFO(this->get_logger(), "waiting for more clouds to come in");
 					return; //if we haven't recieved 3 new clouds, wait a cycle (rudamentary synchronization. we'll see how it does)
 				} 
 			}
+
+			this->has_new_cloud1 = false;
+			this->has_new_cloud2 = false;
+			this->has_new_cloud3 = false;
+
+			RCLCPP_INFO(this->get_logger(), "Processing cloud");
 
 			sensor_msgs::msg::PointCloud2 pc2_cloud1 = this->cloud1;
 			sensor_msgs::msg::PointCloud2 pc2_cloud2 = this->cloud2;
@@ -249,10 +425,6 @@ class PointCloudCombinerNode : public rclcpp::Node
 			}
 
 			// RCLCPP_INFO(this->get_logger(), "here1");
-
-			this->has_new_cloud1 = false;
-			this->has_new_cloud2 = false;
-			this->has_new_cloud3 = false;
 
 
 			if (!pc2_cloud1.data.size() && !pc2_cloud2.data.size() && !pc2_cloud3.data.size())
@@ -382,10 +554,15 @@ class PointCloudCombinerNode : public rclcpp::Node
 			// std::cout << "about to publish cloud of size " << combined_cloud.data.size() << " bytes\n";
 			if (combined_cloud.data.size() != 0)
 			{	
-				// std::cout << "Publishing nonempty cloud\n";
+				RCLCPP_INFO(this->get_logger(), "Publishing nonempty cloud");
 				this->cloud_pub->publish(combined_cloud);
 			}
 
+		}
+
+		void finishMsgCallback(const std_msgs::msg::Bool::SharedPtr msg )
+		{
+			this->finished_received = msg->data;
 		}
 		
 		
@@ -393,7 +570,7 @@ class PointCloudCombinerNode : public rclcpp::Node
 		 * @Function 	pointCloudCallback1
 		 * @Param 		msg - incoming data message
 		 * @Return 		void
-		 * @Brief 		Reacts to incoming pointcloud messages. Calls the save-to-file function
+		 * @Brief 		Reacts to incoming pointcloud messages.
 		 */
 		void pointCloudCallback1(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
 		{
@@ -408,7 +585,7 @@ class PointCloudCombinerNode : public rclcpp::Node
 		 * @Function 	pointCloudCallback2
 		 * @Param 		msg - incoming data message
 		 * @Return 		void
-		 * @Brief 		Reacts to incoming pointcloud messages. Calls the save-to-file function
+		 * @Brief 		Reacts to incoming pointcloud messages.
 		 */
 		void pointCloudCallback2(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
 		{
@@ -423,7 +600,7 @@ class PointCloudCombinerNode : public rclcpp::Node
 		 * @Function 	pointCloudCallback3
 		 * @Param 		msg - incoming data message
 		 * @Return 		void
-		 * @Brief 		Reacts to incoming pointcloud messages. Calls the save-to-file function
+		 * @Brief 		Reacts to incoming pointcloud messages.
 		 */
 		void pointCloudCallback3(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
 		{

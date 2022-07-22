@@ -31,6 +31,7 @@ find_package(cv_bridge REQUIRED)
 # find_package(rosbag)
 find_package(Eigen3 REQUIRED)
 find_package(OpenMP REQUIRED)
+find_package(rosbag2_cpp REQUIRED)
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 
 # generate_dynamic_reconfigure_options(
@@ -85,7 +86,7 @@ ament_target_dependencies(pointcloud_grid_parser rclcpp std_msgs sensor_msgs nav
 # target_link_libraries(pointcloud_grid_parser pointcloud_utils)
 
 add_executable(cloud_combiner src/conversion/pointcloud_combiner_node3.cpp)
-ament_target_dependencies(cloud_combiner rclcpp std_msgs sensor_msgs Eigen3)
+ament_target_dependencies(cloud_combiner rclcpp std_msgs sensor_msgs Eigen3 rosbag2_cpp)
 
 #  add_executable(pointcloud_to_laserscan src/conversion/pointcloud_to_laserscan.cpp src/conversion/pointcloud_to_laserscan_node.cpp)
 #  ament_target_dependencies(pointcloud_to_laserscan )
@@ -169,18 +170,8 @@ install(
 )
 
 install(
-  FILES config/processing/ground_processor.yaml 
-  DESTINATION share/${PROJECT_NAME}/config/processing/
-)
-
-install(
-  FILES config/processing/grid_ground_processor.yaml
-  DESTINATION share/${PROJECT_NAME}/config/processing/
-)
-
-install(
-  FILES config/conversion/cloud_combiner.yaml
-  DESTINATION share/${PROJECT_NAME}/config/conversion/
+  DIRECTORY config/
+  DESTINATION share/${PROJECT_NAME}/config/
 )
 
 install(

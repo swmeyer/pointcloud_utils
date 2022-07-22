@@ -23,6 +23,7 @@
   <depend>cv_bridge</depend>
   <depend>atr_msgs</depend>
   <depend>novatel_oem7_msgs</depend>
+  <depend>rosbag2_cpp</depend>
   <!-- <depend>dynamic_reconfigure</depend> -->
   <!-- <depend>rosbag</depend> -->
   
