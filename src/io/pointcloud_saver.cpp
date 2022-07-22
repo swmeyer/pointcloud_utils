@@ -124,6 +124,7 @@ void PointCloudSaver::setCurrentCloud(const std::vector<pointcloud_utils::lumina
  */
 void PointCloudSaver::saveTimeToFile(const double& time)
 {
+	// std::cout << "Saving time: " << time << " to file\n";
 	//prepare file name
 	std::stringstream sstream;
 	sstream << filename_base << "_" << time_file_name << file_extension;
@@ -245,7 +246,7 @@ void PointCloudSaver::savePointsToFile(const std::vector<pointcloud_utils::lumin
 
 	if (file.is_open())
 	{
-		std::cout << "Saving to file: " << filename << "\n";
+		// std::cout << "Saving to file: " << filename << "\n";
 		//Write to file
 		if (file_extension == ".csv")
 		{

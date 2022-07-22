@@ -4,7 +4,10 @@
  */
 
 #include <rclcpp/rclcpp.hpp>
+
+#include <rosbag2_cpp/readers/sequential_reader.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
+#include <std_msgs/msg/bool.hpp>
 
 #include <vector>
 #include <unordered_map>
@@ -15,16 +18,20 @@
 #include <iostream>
 
 #include <omp.h>
+#include <unistd.h>     //required for usleep()
 
 #include "pointcloud_utils/pointcloud_utils.hpp"
 #include "pointcloud_utils/pointcloud_utils_impl.hpp"
+#include "pointcloud_utils/io/pointcloud_saver.hpp"
 
-using sensor_msgs::msg::PointCloud2;
+// using sensor_msgs::msg::PointCloud2;
 
 class GridGroundRemovalNode : public rclcpp::Node
 {
     public:
-        GridGroundRemovalNode() : Node("grid_ground_removal_node")
+        GridGroundRemovalNode() : 
+            Node("grid_ground_removal_node"),
+            finished_received(false)
         {
             RCLCPP_INFO(this->get_logger(), "Grid ground processor init");
 
@@ -33,6 +40,13 @@ class GridGroundRemovalNode : public rclcpp::Node
             this->declare_parameter<std::string>("input_cloud_topic", "/luminar_points");
             this->declare_parameter<std::string>("output_nonground_topic", "/lidar/nonground_points");
             this->declare_parameter<bool>("use_lumin2", false);
+
+            this->declare_parameter<bool>("read_from_bag", false);
+            this->declare_parameter<std::string>("bagfile", "../rosbag2_test_data");
+            this->declare_parameter<bool>("wait_for_finish_msg", false);
+            this->declare_parameter<std::string>("finish_msg_topic", "/walls_finished");
+            this->declare_parameter<float>("bag_read_wait", 0.25);
+            this->declare_parameter<bool>("save_to_file", false);
 
             // ROI params
             this->declare_parameter<float>("x_min", -75.0);
@@ -57,6 +71,14 @@ class GridGroundRemovalNode : public rclcpp::Node
 
             // --- Initialize data ---
             this->get_parameter<bool>("use_lumin2", this->use_lumin2);
+            std::string finish_msg_topic;
+            this->get_parameter<bool>("read_from_bag",      this->read_from_bag);
+            this->get_parameter<std::string>("bagfile",     this->bagfile);
+            this->get_parameter<bool>("wait_for_finish_msg", this->wait_for_finish_msg);
+            this->get_parameter<std::string>("finish_msg_topic", finish_msg_topic);
+            this->get_parameter<float>("bag_read_wait",     this->bag_read_wait);
+            this->get_parameter<bool>("save_to_file",       this->save_to_file);
+
             this->get_parameter<float>("x_min", this->_x_min);
             this->get_parameter<float>("x_max", this->_x_max);
             this->get_parameter<float>("y_min", this->_y_min);
@@ -82,33 +104,73 @@ class GridGroundRemovalNode : public rclcpp::Node
             this->_height_accum = std::unordered_map<uint64_t, std::vector<float>>();
             this->_index_accum = std::unordered_map<uint64_t, std::vector<uint64_t>>();
 
-            std::string input_cloud_topic, output_nonground_topic;
-            this->get_parameter<std::string>("input_cloud_topic", input_cloud_topic);
-            this->_lidar_sub = this->create_subscription<PointCloud2>(
-                input_cloud_topic,
-                rclcpp::SensorDataQoS(),
-                std::bind(&GridGroundRemovalNode::_pointCloudCallBack, this, std::placeholders::_1)
-            );
+            if (this->save_to_file)
+            {
+                this->pt_cloud_saver = new pointcloud_utils::PointCloudSaver("nonground", ".csv");
+            }
 
+            if (this->wait_for_finish_msg)
+            {
+                this->finished_msg_sub = this->create_subscription<std_msgs::msg::Bool>(finish_msg_topic, 1, std::bind(&GridGroundRemovalNode::finishMsgCallback, this, std::placeholders::_1));
+            }
+
+            
+            this->get_parameter<std::string>("input_cloud_topic", this->input_cloud_topic);
+            
+            if (this->read_from_bag)
+            {
+                this->bagread_thread = new std::thread(std::bind(&GridGroundRemovalNode::readFromBag, this));
+                bagread_thread->detach();
+            } else
+            {
+                // this->_lidar_sub = this->create_subscription<sensor_msgs::msg::PointCloud2>( this->input_cloud_topic, rclcpp::SensorDataQoS(), std::bind(&GridGroundRemovalNode::_pointCloudCallBack, this, std::placeholders::_1));
+                rclcpp::QoS qos = rclcpp::QoS(rclcpp::KeepLast(1000)).reliable();
+                this->_lidar_sub = this->create_subscription<sensor_msgs::msg::PointCloud2>( this->input_cloud_topic, qos, std::bind(&GridGroundRemovalNode::_pointCloudCallBack, this, std::placeholders::_1));
+            }
+
+            std::string output_nonground_topic;
             this->get_parameter<std::string>("output_nonground_topic", output_nonground_topic);
-            this->_nonground_pub = this->create_publisher<PointCloud2>(
-                output_nonground_topic,
-                rclcpp::SensorDataQoS()
-            );
+            this->_nonground_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>(output_nonground_topic, rclcpp::SensorDataQoS());
+        }
 
 
+        ~GridGroundRemovalNode()
+        {
+            delete this->pt_cloud_saver;
+            
+            this->bagread_thread->join();
+            delete this->bagread_thread;
         }
     
     private:
+        //Constants
+        const int S_TO_MS = 1000000;
+
         // Objects
-        rclcpp::Publisher<PointCloud2>::SharedPtr _nonground_pub;
+
+
+        rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr _nonground_pub;
         
-        rclcpp::Subscription<PointCloud2>::SharedPtr _lidar_sub;
+        rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr _lidar_sub;
+        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr finished_msg_sub;
+
+
+        pointcloud_utils::PointCloudSaver *pt_cloud_saver;
+
+        std::thread* bagread_thread;
+        std::string bagfile;
+        std::string input_cloud_topic;
 
         std::unordered_map<uint64_t, std::vector<float>> _height_accum;
         std::unordered_map<uint64_t, std::vector<uint64_t>> _index_accum;
 
         bool use_lumin2;
+        bool read_from_bag;
+        bool wait_for_finish_msg;
+        float bag_read_wait;
+        bool save_to_file;
+
+        bool finished_received;
 
         // Data
         float _x_min, _x_max, _y_min, _y_max, _z_min, _z_max;
@@ -119,9 +181,15 @@ class GridGroundRemovalNode : public rclcpp::Node
 
 
         // Methods
-        template <class T> void processCloud(std::vector<T>& cloud, const PointCloud2::SharedPtr msg)
+
+        template <class T> void processCloud(std::vector<T>& cloud, const sensor_msgs::msg::PointCloud2::SharedPtr msg)
         {
-            pointcloud_utils::convertFromPointCloud2(*msg, cloud);
+            this->processCloud(cloud, *msg);
+        }
+
+        template <class T> void processCloud(std::vector<T>& cloud, const sensor_msgs::msg::PointCloud2 msg)
+        {
+            pointcloud_utils::convertFromPointCloud2(msg, cloud);
 
             // Build occupancy grid
             #pragma omp simd
@@ -184,10 +252,10 @@ class GridGroundRemovalNode : public rclcpp::Node
             }
 
             // Publish
-            PointCloud2 out_msg;
-            out_msg.header = msg->header;
-            out_msg.fields = msg->fields;
-            out_msg.point_step = msg->point_step;
+            sensor_msgs::msg::PointCloud2 out_msg;
+            out_msg.header = msg.header;
+            out_msg.fields = msg.fields;
+            out_msg.point_step = msg.point_step;
             out_msg.height = 1;
             out_msg.width = out_cloud.size();
             out_msg.row_step = out_msg.point_step * out_cloud.size();
@@ -198,11 +266,127 @@ class GridGroundRemovalNode : public rclcpp::Node
             RCLCPP_INFO(this->get_logger(), "Published nonground points");
         }
 
-        void _pointCloudCallBack(const PointCloud2::SharedPtr msg)
+
+        bool processMessage(const std::shared_ptr<rosbag2_storage::SerializedBagMessage> serialized_msg, const std::string& topic_type, sensor_msgs::msg::PointCloud2& return_msg)
+        {
+        
+            if (topic_type != "sensor_msgs/msg/PointCloud2")
+            {
+                return false;
+            }
+
+            // deserialization and conversion to ros message
+            auto ros_message = std::make_shared<rosbag2_cpp::rosbag2_introspection_message_t>();
+            ros_message->time_stamp = 0;
+            ros_message->message = nullptr;
+            ros_message->allocator = rcutils_get_default_allocator();
+
+            rosbag2_cpp::SerializationFormatConverterFactory factory;
+            std::unique_ptr<rosbag2_cpp::converter_interfaces::SerializationFormatDeserializer> cdr_deserializer;
+            cdr_deserializer = factory.load_deserializer("cdr");
+
+            const rosidl_message_type_support_t * type_support = rosidl_typesupport_cpp::get_message_type_support_handle<sensor_msgs::msg::PointCloud2>();
+            sensor_msgs::msg::PointCloud2 msg;
+            ros_message->message = &msg;
+            cdr_deserializer->deserialize(serialized_msg, type_support, ros_message);
+
+            return_msg = msg;
+
+            return true;
+        }
+
+        void readFromBag()
+        {
+            rosbag2_cpp::readers::SequentialReader* reader = new rosbag2_cpp::readers::SequentialReader();
+            rosbag2_cpp::StorageOptions storage_options{};
+            rosbag2_cpp::ConverterOptions converter_options{};
+
+            storage_options.uri = this->bagfile;
+            storage_options.storage_id = "sqlite3";
+
+            converter_options.input_serialization_format = "cdr";
+            converter_options.output_serialization_format = "cdr";
+
+            reader->open(storage_options, converter_options);            
+            std::vector<rosbag2_storage::TopicMetadata> topics = reader->get_all_topics_and_types();
+
+            // metadata
+            std::map<std::string, std::string> topics_map;
+            for (rosbag2_storage::TopicMetadata topic:topics)
+            {
+                topics_map.insert(std::pair<std::string, std::string>(topic.name, topic.type));
+            }
+
+            // read and deserialize "serialized data"
+            while (reader->has_next())
+            {
+                // serialized data
+                std::shared_ptr<rosbag2_storage::SerializedBagMessage> serialized_message = reader->read_next();
+
+                std::string topic_type = topics_map[serialized_message->topic_name];
+                // std::cout << "Topic: " << topic_type << "\n";
+                if (topic_type != "sensor_msgs/msg/PointCloud2")
+                {
+                    continue;
+                }
+
+                std::string topic_name = serialized_message->topic_name;
+                sensor_msgs::msg::PointCloud2 msg;
+                if (topic_name == this->input_cloud_topic)
+                {
+                    if (!this->processMessage(serialized_message, topic_type, msg))
+                    {
+                        continue;
+                    }
+                    
+                    if  (this->save_to_file)
+                    {
+                        this->pt_cloud_saver->setCurrentCloud(msg);
+                    }                    
+                    this->_height_accum.clear();
+                    this->_index_accum.clear();
+        
+                    // Read into struct
+                    if (this->use_lumin2)
+                    {
+                        // std::cout << "Using lumin2 pointstruct\n";
+                        std::vector<pointcloud_utils::luminarPointstruct2> cloud;
+                        this->processCloud(cloud, msg);
+                    } else
+                    {
+                        std::vector<pointcloud_utils::luminarPointstruct> cloud;
+                        this->processCloud(cloud, msg);
+                    }
+                } 
+
+                if (this->wait_for_finish_msg)
+                {
+                    RCLCPP_INFO(this->get_logger(), "waiting for finish process");
+                    while(!this->finished_received && rclcpp::ok())
+                    {
+                        usleep(0.1 * S_TO_MS);
+                    }
+                    RCLCPP_INFO(this->get_logger(), "received process finished message!");
+                    this->finished_received = false;
+                }
+            }
+            RCLCPP_INFO(this->get_logger(), "Finished reading bag");
+        }
+
+        void finishMsgCallback(const std_msgs::msg::Bool::SharedPtr msg )
+        {
+            this->finished_received = msg->data;
+        }
+
+        void _pointCloudCallBack(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
         {
             RCLCPP_INFO(this->get_logger(), "Received new cloud");
             this->_height_accum.clear();
             this->_index_accum.clear();
+            if  (this->save_to_file)
+            {
+                this->pt_cloud_saver->setCurrentCloud(msg);
+            }  
 
             // Read into struct
             if (this->use_lumin2)
@@ -215,6 +399,7 @@ class GridGroundRemovalNode : public rclcpp::Node
                 std::vector<pointcloud_utils::luminarPointstruct> cloud;
                 processCloud(cloud, msg);
             }
+            RCLCPP_INFO(this->get_logger(), "Finished cloud");
         }
 
         #pragma omp declare simd
@@ -251,7 +436,8 @@ class GridGroundRemovalNode : public rclcpp::Node
             const size_t sz = data.size();
             const float mean = std::accumulate(data.begin(), data.end(), 0.0) / sz;
 
-            auto var_func = [&mean, &sz](float accum, const float& val) {
+            auto var_func = [&mean, &sz](float accum, const float& val) 
+            {
                 return accum +( (val-mean)*(val-mean) / (sz - 1) );
             };
 

@@ -53,6 +53,7 @@ class PointCloudCombinerNode : public rclcpp::Node
 			this->declare_parameter<bool>("invert_point_crop", false);
 
 			this->declare_parameter<bool>("drop_old_clouds", false);
+
 			this->declare_parameter<bool>("read_from_bag", false);
             this->declare_parameter<std::string>("bagfile", "../rosbag2_test_data");
 			this->declare_parameter<bool>("wait_for_finish_msg", false);
@@ -144,7 +145,9 @@ class PointCloudCombinerNode : public rclcpp::Node
 				this->finished_msg_sub = this->create_subscription<std_msgs::msg::Bool>(finish_msg_topic, 1, std::bind(&PointCloudCombinerNode::finishMsgCallback, this, std::placeholders::_1));
 			}
 
-			this->cloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>(cloud_out_topic, rclcpp::SensorDataQoS());
+			rclcpp::QoS qos = rclcpp::QoS(rclcpp::KeepLast(1000)).reliable();
+			// this->cloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>(cloud_out_topic, rclcpp::SensorDataQoS());
+			this->cloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>(cloud_out_topic, qos);
 
 			RCLCPP_INFO(this->get_logger(), "ms delay: %d", (int) ((1/rate) * 1000));
 

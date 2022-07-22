@@ -116,8 +116,8 @@ ament_target_dependencies(pointcloud_mapper rclcpp sensor_msgs atr_msgs novatel_
 add_executable(ground_processor src/processing/ground_removal_and_alignment_node.cpp)
 ament_target_dependencies(ground_processor rclcpp sensor_msgs visualization_msgs geometry_msgs Eigen3)
 
-add_executable(grid_ground_processor src/processing/grid_ground_removal_node.cpp)
-ament_target_dependencies(grid_ground_processor rclcpp sensor_msgs Eigen3 OpenMP)
+add_executable(grid_ground_processor src/processing/grid_ground_removal_node.cpp src/io/pointcloud_saver.cpp)
+ament_target_dependencies(grid_ground_processor rclcpp rosbag2_cpp sensor_msgs Eigen3 OpenMP)
 
 #test
 add_executable(simple_cloud_reader src/test/cloud_reader.cpp)
