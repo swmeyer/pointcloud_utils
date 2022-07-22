@@ -18,6 +18,16 @@ PointCloudSaver::PointCloudSaver(std::string filename, std::string file_extensio
 	this->file_extension = file_extension;
 	this->time_file_name = "times";
 	// setIntputTopic(topic);
+
+	//prepare time file name
+	std::stringstream sstream;
+	sstream << filename_base << "_" << time_file_name << file_extension;
+	std::string time_filename = sstream.str();
+
+	//Open file
+	std::ofstream file(time_filename);
+	file << "time_s\n"; //headers for csv
+	file.close();
 }
 
 PointCloudSaver::~PointCloudSaver() 
@@ -102,15 +112,17 @@ void PointCloudSaver::setCurrentCloud(const std::vector<pointcloud_utils::lumina
 	}
 
 	this->times.push_back(time);
+
+	this->saveTimeToFile(time);
 }
 
 /**
- * @Function 	saveTimesToFile
+ * @Function 	saveTimeToFile
  * @Param 		none
  * @Return 		void
  * @Brief 		Saves the time array to a default file
  */
-void PointCloudSaver::saveTimesToFile()
+void PointCloudSaver::saveTimeToFile(const double& time)
 {
 	//prepare file name
 	std::stringstream sstream;
@@ -119,7 +131,7 @@ void PointCloudSaver::saveTimesToFile()
 
 	//Open file
 	std::ofstream file;
-	file.open(filename);
+	file.open(filename, std::ios_base::app);
 
 	if (file.is_open())
 	{
@@ -127,12 +139,8 @@ void PointCloudSaver::saveTimesToFile()
 		//Write to file
 		if (file_extension == ".csv")
 		{
-			file << "time_s\n"; //headers for csv
-			for (double time : this->times)
-			{
-				file.precision(17);
-				file << std::fixed << time << ",\n";
-			}
+			file.precision(17);
+			file << std::fixed << time << ",\n";
 		} else
 		{
 			std::cout << "Filetype not suppported: " << file_extension << "\n";
@@ -142,7 +150,48 @@ void PointCloudSaver::saveTimesToFile()
 	{
 		std::cout << "Could not open file: " << filename << "\n";
 	}
+	file.close();
 }
+
+// /**
+//  * @Function 	saveTimesToFile
+//  * @Param 		none
+//  * @Return 		void
+//  * @Brief 		Saves the time array to a default file
+//  */
+// void PointCloudSaver::saveTimesToFile()
+// {
+// 	//prepare file name
+// 	std::stringstream sstream;
+// 	sstream << filename_base << "_" << time_file_name << file_extension;
+// 	std::string filename = sstream.str();
+// 
+// 	//Open file
+// 	std::ofstream file;
+// 	file.open(filename);
+// 
+// 	if (file.is_open())
+// 	{
+// 		std::cout << "Saving to file: " << filename << "\n";
+// 		//Write to file
+// 		if (file_extension == ".csv")
+// 		{
+// 			file << "time_s\n"; //headers for csv
+// 			for (double time : this->times)
+// 			{
+// 				file.precision(17);
+// 				file << std::fixed << time << ",\n";
+// 			}
+// 		} else
+// 		{
+// 			std::cout << "Filetype not suppported: " << file_extension << "\n";
+// 		}
+// 		
+// 	} else
+// 	{
+// 		std::cout << "Could not open file: " << filename << "\n";
+// 	}
+// }
 
 // /**
 //  * @Function 	pointCloudCallback

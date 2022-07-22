@@ -165,7 +165,7 @@ class PointCloudCombinerNode : public rclcpp::Node
 
 		~PointCloudCombinerNode()
 		{
-			this->pt_cloud_saver->saveTimesToFile();
+			// this->pt_cloud_saver->saveTimesToFile();
 			delete this->pt_cloud_saver;
 			
 			this->bagread_thread->join();

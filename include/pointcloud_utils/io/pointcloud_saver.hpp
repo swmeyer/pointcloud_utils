@@ -64,13 +64,23 @@ public:
 	 */
 	void setCurrentCloud(const std::vector<pointcloud_utils::luminarPointstruct>& cloud, const double& time, const std::string& filename="");
 
+
 	/**
- 	 * @Function 	saveTimesToFile
- 	 * @Param 		none
- 	 * @Return 		void
- 	 * @Brief 		Saves the time array to a default file
- 	 */
-	void saveTimesToFile();
+	 * @Function 	saveTimeToFile
+	 * @Param 		none
+	 * @Return 		void
+	 * @Brief 		Saves the time array to a default file
+	 */
+	void saveTimeToFile(const double& time);
+
+	// /**
+ 	//  * @Function 	saveTimesToFile
+ 	//  * @Param 		none
+ 	//  * @Return 		void
+ 	//  * @Brief 		Saves the time array to a default file
+ 	//  */
+	// void saveTimesToFile();
+
 
 private:
 	std::string     input_topic;		//topic for the cloud to save

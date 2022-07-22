@@ -42,15 +42,16 @@ class PointCloudSaverNode : public rclcpp::Node
 			this->get_parameter<std::string>("bagfile", bagfile_name);
 		
 			//Make pointcloud svaver object
-			pc_saver = new pointcloud_utils::PointCloudSaver(filename, filetype);
+			this->pc_saver = new pointcloud_utils::PointCloudSaver(filename, filetype);
 
-			cloud_sub = this->create_subscription<sensor_msgs::msg::PointCloud2>(lidar_topic, rclcpp::SensorDataQoS(), std::bind(&PointCloudSaverNode::pointCloudCallback, this, std::placeholders::_1));
+			this->cloud_sub = this->create_subscription<sensor_msgs::msg::PointCloud2>(lidar_topic, rclcpp::SensorDataQoS(), std::bind(&PointCloudSaverNode::pointCloudCallback, this, std::placeholders::_1));
 
 		}
 
 		~PointCloudSaverNode()
 		{
-			pc_saver->saveTimesToFile();
+			// this->pc_saver->saveTimesToFile();
+			delete this->pc_saver;
 		}
 
 	private:
