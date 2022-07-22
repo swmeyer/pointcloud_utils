@@ -1,0 +1,4 @@
+<launch>
+	<param name="/use_sim_time" value="true"/>
+    <node pkg="tf" type="static_transform_publisher" name="lidar_tf_broadcaster2" args="0, 0, 1.7, 0.1, 0, 3.14, base velodyne 10" />
+</launch>

@@ -204,6 +204,6 @@ if __name__ == '__main__':
 	#todo: save header, timestamps
 	queue = 100
 		
-	rospy.Subscriber(pointcloud_topic, PointCloud2, pointcloudCallback, queue_size=queue, tcp_nodelay=True)
+	rospy.Subscription(pointcloud_topic, PointCloud2, pointcloudCallback, queue_size=queue, tcp_nodelay=True)
 
 	rospy.spin()

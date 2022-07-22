@@ -8,8 +8,8 @@
 #define PLANE_PARSER_HPP
 
 // --------------------------
-#include <sensor_msgs/PointCloud2.h>
-#include <geometry_msgs/Point.h>
+#include <sensor_msgs/msg/point_cloud2.hpp>
+#include <geometry_msgs/msg/point.hpp>
 
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
@@ -23,9 +23,9 @@
 
 namespace pointcloud_utils
 {
-	class PlaneParser
+	namespace plane_parser_utils
 	{
-	public:
+
 		enum class CovarianceType
 		{
 			GOODNESS_OF_FIT_ERROR,
@@ -35,7 +35,7 @@ namespace pointcloud_utils
 			LEAST_SQUARES,
 			UNKNOWN
 		};
-
+	
 		enum class AngleSolutionType
 		{
 			ATTITUDE_ANGLES,
@@ -51,7 +51,6 @@ namespace pointcloud_utils
 			SVD,
 			UNKNOWN
 		};
-
 
 		struct Settings
 		{
@@ -73,9 +72,16 @@ namespace pointcloud_utils
 			pointcloud_utils::Transform transform; // transform values to use (Roll Pitch Yaw ordered rotation matrix will be generated)
 			std::string transform_frame; //id of cloud after transform
 			
-			PlaneParser::AngleSolutionType 	angle_solution_type; 	// Determines what equations to use when solving for the planar roll and pitch
-			PlaneParser::CovarianceType 	covariance_type; 			// Specifies which equations to use for covariance
-			PlaneParser::PlaneFitType 		plane_fit_type; //Determines which type of plane fit to use. 
+			plane_parser_utils::AngleSolutionType 	angle_solution_type; 	// Determines what equations to use when solving for the planar roll and pitch
+			plane_parser_utils::CovarianceType 		covariance_type; 			// Specifies which equations to use for covariance
+			plane_parser_utils::PlaneFitType 		plane_fit_type; //Determines which type of plane fit to use. 
+		
+			int point_skip_num; //number of points to skip each increment when stepping through cloud
+			bool invert_cloud_step_through; //if true, start finding ground points from the largest point index rather than 0
+			int max_point_count; //stop collecting points when this number is hit
+
+
+			float consecutive_height_tolerance;
 		};
 
 		struct States
@@ -124,9 +130,9 @@ namespace pointcloud_utils
 
 		struct PlaneParameters //equation of plane: a/d x + b/d y + c/d z = 1
 		{
-			float a_d;
-			float b_d;
-			float c_d; //TODO:remove these, and have the plane parser set d = 1
+			float a_d = 0;
+			float b_d = 0;
+			float c_d = 0; //TODO:remove these, and have the plane parser set d = 1
 			float variance;
 			float a;
 			float b;
@@ -136,12 +142,12 @@ namespace pointcloud_utils
 			Eigen::Matrix3f covariance_matrix; // a, b, c
 		};
 
-		enum class pointValueIndex //used to specify which direction we expect this plane to be in
-		{
-			X = 0,
-			Y,
-			Z
-		};
+		// enum class PointValueIndex //used to specify which direction we expect this plane to be in
+		// {
+		// 	X = 0,
+		// 	Y,
+		// 	Z
+		// };
 
 		struct LeastSquaresMatricies
 		{
@@ -153,191 +159,190 @@ namespace pointcloud_utils
 			Eigen::Matrix3f matrix_E; // 3x3
 		};
 
-		PlaneParser(const PlaneParser::Settings& settings);
-		~PlaneParser();
+		PlaneFitType convertPlaneFitType(const std::string& string_in);
+		CovarianceType convertCovarianceType(const std::string& string_in);
+		AngleSolutionType convertAngleSolutionType(const std::string& string_in);
+	}
 
-		void updateSettings(PlaneParser::Settings& settings);
-
-		//TODO: make a templated version which requires the specification of a pointstruct type
-		/**
-		 * @function 	parsePlane
-		 * @brief 		finds the plane-fit of the given cloud, using the given window bounds
-		 * @param 		cloud_in - inputted 3D point cloud
-		 * @param 		cloud - space to store converted 3D cloud
-		 * @param 		plane_points  - space to store the filtered plane points
-		 * @param 		plane_parameters - coefficients of the fitted plane equation
-		 * @param 		plane_states - values representing planar position and orientation
-		 * @param 		search_window - window within which to process points for this plane
-		 * @param 		intensity_min - min intensity value to consider (default 0)
-	 	 * @param 		intensity_max - max intensity value to consider (default 256)
-	 	 * @return 		void
-		 */
-		void parsePlane
-		(
-			const sensor_msgs::PointCloud2::ConstPtr& cloud_in, 
-			std::vector<pointcloud_utils::pointstruct>& cloud, 
-			sensor_msgs::PointCloud2& filtered_cloud,
-			PlaneParser::PlaneParameters& plane_parameters,
-			PlaneParser::States& plane_states,
-			pointcloud_utils::SearchWindow& search_window,
-			const float intensity_min = 0,
-			const float intentisty_max = 256
-		);
-
-		/**
-		 * @function 	parsePlane
-		 * @brief 		finds the plane-fit of the given cloud, using the given window bounds
-		 * @param 		cloud - inputted 3D point cloud
-		 * @param 		plane_points  - space to store the filtered plane points
-		 * @param 		plane_parameters - coefficients of the fitted plane equation
-		 * @param 		plane_states - values representing planar position and orientation
-		 * @param 		search_window - window within which to process points for this plane
-		 * @param 		time - rostime in seconds for this cloud
-	 	 * @param 		intensity_min - min intensity value to consider (default 0)
-	 	 * @param 		intensity_max - max intensity value to consider (default 256)
-	 	 * @return 		void
-		 */
-		void parsePlane
-		(
-			std::vector<pointcloud_utils::pointstruct>& cloud, 
-			std::vector<pointcloud_utils::pointstruct>& filtered_cloud,
-			PlaneParser::PlaneParameters& plane_parameters,
-			PlaneParser::States& plane_states,
-			pointcloud_utils::SearchWindow& search_window,
-			const double time,
-			const float intensity_min = 0,
-			const float intentisty_max = 256
-		);
-		
-		// //TODO: make a templated version which requires the specification of a pointstruct type
-		// /**
-		//  * @function 	parsePlane
-		//  * @brief 		finds the plane-fit of the given cloud, using the given window bounds
-		//  * @param 		cloud - inputted 3D cloud
-		//  * @param 		plane_points  - space to store the filtered plane points
-		//  * @param 		plane_parameters - coefficients of the fitted plane equation
-		//  * @param 		plane_states - values representing planar position and orientation
-		//  * @param 		search_window - window within which to process points for this plane
-		//  * @return 		void
-		//  */
-		// void parsePlane
-		// (
-		// 	std::vector<pointcloud_utils::pointstruct>& cloud, 
-		// 	sensor_msgs::PointCloud2& filtered_cloud,
-		// 	PlaneParser::PlaneParameters& plane_parameters,
-		// 	PlaneParser::States& plane_states,
-		// 	pointcloud_utils::SearchWindow& search_window,
-		// );
-
-		//TODO: make a templated version which requires the specification of a pointstruct type
-		/**
-		 * @function 	pointIsOnPlane
-		 * @brief 		checks if the given point is on the given plane or not, using the given tolerance
-		 * @param 		pt - point to check
-		 * @param 		plane_parameters - description of plane to check on
-		 * @param 		tolerance - threshold for distance from plane
-		 * @return 		bool - true if the point is on the plane, 
-		 * 				       false otherwise
-		 */
-		bool pointIsOnPlane(const pointcloud_utils::pointstruct& pt, const PlaneParser::PlaneParameters& plane_parameters, const float& tolerance);
-		
-	private:
-		// --------------------------
-		Settings settings; // holds the current settings for this converter
-		
-		States tracked_plane_states;
-		
-		double last_state_time;
-		double this_state_time;
-		bool first = true;
-		// --------------------------
-
-
-		/**
-		 * @Function 	filterCloud
-		 * @Param 		cloud - point cloud to parse
-		 * @Param 		plane_points - place to save parsed cloud
-		 * @Param 		search_window - bounds within which to process points
-		 * @param 		intensity_min - minimum intensity to accept into plane (default 0)
-		 * @param 		intensity_max - maximum intensity to accept into plane (default 256)
-		 * @Return 		void
-		 * @Brief 		Filteres the given cloud to the given window of points
-		 */
-		void filterCloud
-		(
-			std::vector<pointcloud_utils::pointstruct>& cloud, 
-			std::vector<pointcloud_utils::pointstruct>& plane_points, 
-			const pointcloud_utils::SearchWindow& search_window,
-			const float intensity_min,
-			const float intensity_max
-		);
-
-		/**
-		 * @Function 	fitPlane
-		 * @Param 		cloud - points to fit a plane to
-		 * @Param 		matricies - saves the matricies used in the least squares soltion 
-		 * @Return 		void
- 		 * @Brief 		Fits a plane equation (a/d * x + b/d * y + c/d * z = 1) to the given point cloud
-		 * //TODO: what happens when my plane has d = 0?? (intersects the origin) - I guess the coefficients will approach infinity
-		 * //TODO: look into using robust regression to support outlier tolerance, and brainstorm other techniques for increasing plaraity of underlying points for each fit
-		 */
-		void fitPlane(const std::vector<pointcloud_utils::pointstruct>& cloud, PlaneParser::LeastSquaresMatricies& matricies);
-
-		/**
-		 * @Function 	removeOutliers
-		 * @Param 		plane_points - points belonging to the current plane
-		 * @Param 		plane_coefficients - parameters of the current plane fit, with variance
-		 * @Reutnr 		int - number of outliers removed
-		 * @Brief 		Removes outliers that are out of tolerance of the given plane equation
-		 */
-		int removeOutliers(std::vector<pointcloud_utils::pointstruct>& plane_points, const Eigen::Vector3f& plane_coefficients);
+	template <class T> class PlaneParser
+	{
+		public:	
+			PlaneParser(const plane_parser_utils::Settings& settings);
+			~PlaneParser();
 	
-		/**
-		 * @Function 	getPlaneStates
-		 * @param 		plane_parameters - coefficients of the fitted plane equation, with covariance
-		 * @param 		plane_states - values representing planar position and orientation (to be found)
-		 * @Param 		search_window - bounds within which to process points
-		 * @Return 		void
-		 * @Brief 		Parses the given cloud for the given window of points and saves the found planar states
-		 */
-		void getPlaneStates
-		(
-			const PlaneParser::PlaneParameters& plane_coefficients,
-			PlaneParser::States& plane_states,
-			const pointcloud_utils::SearchWindow& search_window
-		);
-
-		/**
-		 * @Function 	getPlaneOrientation
-	 	 * @Param 		plane_parameters - a, b, c of plane equation with covariance
-		 * @param 		orientation_covariance - covariance for the found angles
-		 * @param 		roll - roll angle of the plane (to be found, if requested)
-		 * @param 		pitch - pitch angle of the plane (to be found, if requested)
-		 * @param 		yaw - yaw angle of the plane (to be found, if requested)
-		 * @param 		quat - quaternion of the plane orienation (to be found, if requested)
-		 * @Return 		void
-		 * @Brief 		determines the orientation of the plane described by the given plane equation
-		 */
-		void getPlaneOrientation(const PlaneParser::PlaneParameters plane_parameters, Eigen::Matrix3f& orientation_covariance, double& roll, double& pitch, double& yaw, Eigen::Quaternion<float>& quat);
-
-
-		/**
-		 * @function 	getPlaneParameterCovariance
-		 * @brief 		calculates the covariance matrix for the given plane parameters
-		 * @param 		plane_parameters - place to save the covariance/variance
-		 * @param 		matricies - struct holding the matricies used in the least squares soltion
-		 * @return 		void
-		 */
-		void getPlaneParameterCovariance(PlaneParser::PlaneParameters& plane_parameters, const PlaneParser::LeastSquaresMatricies& matricies);
+			void updateSettings(plane_parser_utils::Settings& settings);
+	
+			//TODO: make a templated version which requires the specification of a pointstruct type
+			/**
+			 * @function 	parsePlane
+			 * @brief 		finds the plane-fit of the given cloud, using the given window bounds
+			 * @param 		cloud_in - inputted 3D point cloud
+			 * @param 		cloud - space to store converted 3D cloud
+			 * @param 		plane_points  - space to store the filtered plane points
+			 * @param 		plane_parameters - coefficients of the fitted plane equation
+			 * @param 		plane_states - values representing planar position and orientation
+			 * @param 		search_window - window within which to process points for this plane
+			 * @param 		intensity_min - min intensity value to consider (default 0)
+	 		 * @param 		intensity_max - max intensity value to consider (default 256)
+	 		 * @return 		void
+			 */
+			void parsePlane
+			(
+				const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_in, 
+				std::vector<T>& cloud, 
+				sensor_msgs::msg::PointCloud2& filtered_cloud,
+				plane_parser_utils::PlaneParameters& plane_parameters,
+				plane_parser_utils::States& plane_states,
+				pointcloud_utils::SearchWindow& search_window,
+				const float intensity_min = 0,
+				const float intentisty_max = 256
+			);
+	
+			/**
+			 * @function 	parsePlane
+			 * @brief 		finds the plane-fit of the given cloud, using the given window bounds
+			 * @param 		cloud - inputted 3D point cloud
+			 * @param 		plane_points  - space to store the filtered plane points
+			 * @param 		plane_parameters - coefficients of the fitted plane equation
+			 * @param 		plane_states - values representing planar position and orientation
+			 * @param 		search_window - window within which to process points for this plane
+			 * @param 		time - rostime in seconds for this cloud
+	 		 * @param 		intensity_min - min intensity value to consider (default 0)
+	 		 * @param 		intensity_max - max intensity value to consider (default 256)
+	 		 * @return 		void
+			 */
+			void parsePlane
+			(
+				std::vector<T>& cloud, 
+				std::vector<T>& filtered_cloud,
+				plane_parser_utils::PlaneParameters& plane_parameters,
+				plane_parser_utils::States& plane_states,
+				pointcloud_utils::SearchWindow& search_window,
+				const double time,
+				const float intensity_min = 0,
+				const float intentisty_max = 256
+			);
+			
+			// //TODO: make a templated version which requires the specification of a pointstruct type
+			// /**
+			//  * @function 	parsePlane
+			//  * @brief 		finds the plane-fit of the given cloud, using the given window bounds
+			//  * @param 		cloud - inputted 3D cloud
+			//  * @param 		plane_points  - space to store the filtered plane points
+			//  * @param 		plane_parameters - coefficients of the fitted plane equation
+			//  * @param 		plane_states - values representing planar position and orientation
+			//  * @param 		search_window - window within which to process points for this plane
+			//  * @return 		void
+			//  */
+			// void parsePlane
+			// (
+			// 	std::vector<T>& cloud, 
+			// 	sensor_msgs::msg::PointCloud2& filtered_cloud,
+			// 	plane_parser_utils::PlaneParameters& plane_parameters,
+			// 	plane_parser_utils::States& plane_states,
+			// 	pointcloud_utils::SearchWindow& search_window,
+			// );
+	
+			//TODO: make a templated version which requires the specification of a pointstruct type
+			/**
+			 * @function 	pointIsOnPlane
+			 * @brief 		checks if the given point is on the given plane or not, using the given tolerance
+			 * @param 		pt - point to check
+			 * @param 		plane_parameters - description of plane to check on
+			 * @param 		tolerance - threshold for distance from plane
+			 * @return 		bool - true if the point is on the plane, 
+			 * 				       false otherwise
+			 */
+			bool pointIsOnPlane(const T& pt, const plane_parser_utils::PlaneParameters& plane_parameters, const float& tolerance);
+		
+		private:
+			// --------------------------
+			plane_parser_utils::Settings settings; // holds the current settings for this converter
+			
+			plane_parser_utils::States tracked_plane_states;
+			
+			double last_state_time;
+			double this_state_time;
+			bool first = true;
+			// --------------------------
+	
+	
+			/**
+			 * @Function 	filterCloud
+			 * @Param 		cloud - point cloud to parse
+			 * @Param 		plane_points - place to save parsed cloud
+			 * @Param 		search_window - bounds within which to process points
+			 * @param 		intensity_min - minimum intensity to accept into plane (default 0)
+			 * @param 		intensity_max - maximum intensity to accept into plane (default 256)
+			 * @Return 		void
+			 * @Brief 		Filteres the given cloud to the given window of points
+			 */
+			void filterCloud
+			(
+				std::vector<T>& cloud, 
+				std::vector<T>& plane_points, 
+				const pointcloud_utils::SearchWindow& search_window,
+				const float intensity_min,
+				const float intensity_max
+			);
+	
+			/**
+			 * @Function 	fitPlane
+			 * @Param 		cloud - points to fit a plane to
+			 * @Param 		matricies - saves the matricies used in the least squares soltion 
+			 * @Return 		void
+ 			 * @Brief 		Fits a plane equation (a/d * x + b/d * y + c/d * z = 1) to the given point cloud
+			 * //TODO: what happens when my plane has d = 0?? (intersects the origin) - I guess the coefficients will approach infinity
+			 * //TODO: look into using robust regression to support outlier tolerance, and brainstorm other techniques for increasing plaraity of underlying points for each fit
+			 */
+			void fitPlane(const std::vector<T>& cloud, plane_parser_utils::LeastSquaresMatricies& matricies);
+	
+			/**
+			 * @Function 	removeOutliers
+			 * @Param 		plane_points - points belonging to the current plane
+			 * @Param 		plane_coefficients - parameters of the current plane fit, with variance
+			 * @Reutnr 		int - number of outliers removed
+			 * @Brief 		Removes outliers that are out of tolerance of the given plane equation
+			 */
+			int removeOutliers(std::vector<T>& plane_points, const Eigen::Vector3f& plane_coefficients);
+		
+			/**
+			 * @Function 	getPlaneStates
+			 * @param 		plane_parameters - coefficients of the fitted plane equation, with covariance
+			 * @param 		plane_states - values representing planar position and orientation (to be found)
+			 * @Return 		void
+			 * @Brief 		Parses the given cloud for the given window of points and saves the found planar states
+			 */
+			void getPlaneStates
+			(
+				const plane_parser_utils::PlaneParameters& plane_coefficients,
+				plane_parser_utils::States& plane_states
+			);
+	
+			/**
+			 * @Function 	getPlaneOrientation
+	 		 * @Param 		plane_parameters - a, b, c of plane equation with covariance
+			 * @param 		orientation_covariance - covariance for the found angles
+			 * @param 		roll - roll angle of the plane (to be found, if requested)
+			 * @param 		pitch - pitch angle of the plane (to be found, if requested)
+			 * @param 		yaw - yaw angle of the plane (to be found, if requested)
+			 * @param 		quat - quaternion of the plane orienation (to be found, if requested)
+			 * @Return 		void
+			 * @Brief 		determines the orientation of the plane described by the given plane equation
+			 */
+			void getPlaneOrientation(const plane_parser_utils::PlaneParameters plane_parameters, Eigen::Matrix3f& orientation_covariance, double& roll, double& pitch, double& yaw, Eigen::Quaternion<float>& quat);
+	
+	
+			/**
+			 * @function 	getPlaneParameterCovariance
+			 * @brief 		calculates the covariance matrix for the given plane parameters
+			 * @param 		plane_parameters - place to save the covariance/variance
+			 * @param 		matricies - struct holding the matricies used in the least squares soltion
+			 * @return 		void
+			 */
+			void getPlaneParameterCovariance(plane_parser_utils::PlaneParameters& plane_parameters, const plane_parser_utils::LeastSquaresMatricies& matricies);
 
 	}; //end class PlaneParser
-	
-	namespace plane_parser_utils
-	{
-		PlaneParser::PlaneFitType convertPlaneFitType(const std::string& string_in);
-		PlaneParser::CovarianceType convertCovarianceType(const std::string& string_in);
-		PlaneParser::AngleSolutionType convertAngleSolutionType(const std::string& string_in);
-	}
 
 } //end namespace pointcloud_utils
 

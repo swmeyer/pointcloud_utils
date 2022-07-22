@@ -1,0 +1,38 @@
+/lidar_processing:
+  cloud_combiner:
+    ros__parameters:
+      cloud_topic1: "/luminar_front_points"
+      cloud_topic2: "/luminar_right_points"
+      cloud_topic3: "/luminar_left_points"
+      target_frame: "rear_axis_middle_ground"
+      cloud_out_topic: "/cloud"
+      use_luminar_pointstruct: True
+      use_current_time: True
+      wait_for_sync: False
+      rate: 10.0 #hz
+
+      max_num_points: -1
+      invert_point_crop: True
+      old_cloud_timeout: 0.25
+      drop_old_clouds: True
+
+      x_trans_1: 2.242
+      y_trans_1: 0.0
+      z_trans_1: 0.448
+      roll_1: 0.0
+      pitch_1: 0.0
+      yaw_1: 0.0
+
+      x_trans_2: 1.549
+      y_trans_2: 0.267
+      z_trans_2: 0.543
+      roll_2: 0.0
+      pitch_2: 0.0
+      yaw_2: -2.0943951024
+
+      x_trans_3: 1.549
+      y_trans_3: -0.267
+      z_trans_3: 0.543
+      roll_3: 0.0
+      pitch_3: 0.0
+      yaw_3: 2.0943951024

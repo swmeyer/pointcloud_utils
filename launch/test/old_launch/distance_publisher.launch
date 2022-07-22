@@ -1,0 +1,11 @@
+<launch>
+    <node pkg="pointcloud_utils" type="distance_marker_publisher" name="distance_publisher"
+          required="true" output="screen">
+      	   <param name="publish_topic" 		value="/distance_markers" />
+      	   <param name="publish_frame" 		value="base" />
+      	   <param name="publish_rate" 		value="1"  />
+      	   <param name="distance_interval" 	value="10" />
+      	   <param name="number_of_markers" 	value="10"  />
+      	   <param name="marker_width" 		value="20" />
+    </node>
+</launch>

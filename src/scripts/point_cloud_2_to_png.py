@@ -205,6 +205,6 @@ if __name__ == '__main__':
 	if save_image:
 		queue = 10
 		
-	rospy.Subscriber(pointcloud_topic, PointCloud2, pointcloudCallback, queue_size=queue)
+	rospy.Subscription(pointcloud_topic, PointCloud2, pointcloudCallback, queue_size=queue)
 
 	rospy.spin()

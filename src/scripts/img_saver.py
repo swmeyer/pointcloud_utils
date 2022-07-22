@@ -85,6 +85,6 @@ if __name__ == '__main__':
 		#todo: save header, timestamps
 		queue = 10
 		
-		rospy.Subscriber(img_topic, Image, imageCallback, queue_size=queue)
+		rospy.Subscription(img_topic, Image, imageCallback, queue_size=queue)
 
 		rospy.spin()

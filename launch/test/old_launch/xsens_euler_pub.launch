@@ -1,0 +1,10 @@
+<launch>
+    <node pkg="pointcloud_utils" type="imu_to_euler" name="xsens_euler_pub">
+    	<param name="imu_topic" value="/imu/data" />
+    	<param name="publish_in_degrees" value="false" />
+
+    	<param name="ypr" value="true" />
+    	<param name="rpy" value="false" />
+    	<param name="body_angles" value="true" />
+    </node>
+</launch>

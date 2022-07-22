@@ -4,16 +4,28 @@
  */
 
 // -------------------------------
-#include "pointcloud_utils/conversion/pointcloud_transformer.hpp"
+#include "rclcpp/rclcpp.hpp"
 
-#include <ros/ros.h>
+#include "pointcloud_utils/conversion/pointcloud_transformer.hpp"
 // -------------------------------
 
-int main(int argc, char* argv[])
+class PointCloudTransformerNode : public rclcpp:Node
 {
-	ros::init(argc, argv, "pointcloud_transformer_service");
-	ros::NodeHandle n_("~");
+	public:
+		PointCloudTransformerNode() :
+			Node ("pointcloud_transformer_node")
+		{
+			//main content
 
-	//TODO: get params?
-	//TODO: set up this node to advertise a transform service
+			//TODO: declare/get some params?
+
+			//TODO: set up this node to advertise a transform service
+		}
+
+		~PointCloudTransformerNode()
+		{
+
+		}
+
+	private:
 }

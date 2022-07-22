@@ -41,9 +41,9 @@ namespace pointcloud_utils
 	 */
 	void PlaneParser::parsePlane
 	(
-		const sensor_msgs::PointCloud2::ConstPtr& cloud_in, 
+		const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_in, 
 		std::vector<pointcloud_utils::pointstruct>& cloud, 
-		sensor_msgs::PointCloud2& filtered_cloud,
+		sensor_msgs::msg::PointCloud2& filtered_cloud,
 		PlaneParser::PlaneParameters& plane_parameters,
 		PlaneParser::States& plane_states,
 		pointcloud_utils::SearchWindow& search_window,
@@ -75,7 +75,7 @@ namespace pointcloud_utils
 			plane_parameters, 
 			plane_states, 
 			search_window,
-			cloud_in->header.stamp.toSec(),
+			cloud_in->header.stamp.sec,
 			intensity_min,
 			intensity_max
 		);
@@ -224,28 +224,6 @@ namespace pointcloud_utils
 		
 		return(pointcloud_utils::inTolerance(distance, 0, tolerance));
 	}
-
-	/** Track point code
-	if (settings.use_point_track_method)
-	{
-	//Find points of interest
-	bool pt_1_found = false;
-	bool pt_2_found = false;
-	bool pt_3_found = false;
-	
-	bool track_point_found = false;
-
-	pointcloud_utils::pointstruct pt1;
-	pointcloud_utils::pointstruct pt2;
-	pointcloud_utils::pointstruct pt3;
-	
-	pointcloud_utils::pointstruct track_pt;
-	
-	pointcloud_utils::pointstruct track_pt_x;
-	pointcloud_utils::pointstruct track_pt_y;
-	pointcloud_utils::pointstruct track_pt_z;
-
-
 
 	/**
 	 * @Function 	filterCloud

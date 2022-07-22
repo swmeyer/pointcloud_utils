@@ -1,6 +1,6 @@
 /** Author: Stephanie Meyer swmeyer16@gmail.com 17 Feb 2020
-/* Brief: a class to subscribe to point cloud messages and parse them into 2D grids
-/* File: pointcloud_grid_parser.cpp
+ * Brief: a class to subscribe to point cloud messages and parse them into 2D grids
+ * File: pointcloud_grid_parser.cpp
 */
 
 //TODO: remove grid?, remove has_new_params?
@@ -13,8 +13,8 @@
 namespace pointcloud_utils
 {
 	PointCloudGridParser::PointCloudGridParser():
-		initialized(false),
-		has_new_params(false)
+		has_new_params(false),
+		initialized(false)
 	{
 		//empty constructor
 	}
@@ -31,7 +31,7 @@ namespace pointcloud_utils
 	 * @param    transform - transform to intialize with (between cloud frame and robot base frame)
 	 * @return   bool     - true if class is ready to work
 	 */
-	bool PointCloudGridParser::init(PointCloudGridParser::Settings& settings, geometry_msgs::TransformStamped& transform)
+	bool PointCloudGridParser::init(PointCloudGridParser::Settings& settings, geometry_msgs::msg::TransformStamped& transform)
 	{
 		setSettings(settings);
 		setTransform(transform);
@@ -50,7 +50,7 @@ namespace pointcloud_utils
 		settings = this->settings;
 	}
 
-	void PointCloudGridParser::setTransform(geometry_msgs::TransformStamped& transform)
+	void PointCloudGridParser::setTransform(geometry_msgs::msg::TransformStamped& transform)
 	{
 		this->transform = transform;
 	}
@@ -89,12 +89,14 @@ namespace pointcloud_utils
 	//========================================
 	bool PointCloudGridParser::transformToOutputFrame
 	(
-	    const sensor_msgs::PointCloud2::ConstPtr& input_msg,
-	    sensor_msgs::PointCloud2& output_msg
+	    const sensor_msgs::msg::PointCloud2::SharedPtr& input_msg,
+	    sensor_msgs::msg::PointCloud2& output_msg
 	)
 	{
-		tf2::doTransform (*input_msg, output_msg, transform);
-		header.frame_id = output_msg.header.frame_id;
+		std::cout << "Warning: cannot transform point cloud. Need to troubleshoot tf2 not declared\n";
+		output_msg = *input_msg;
+		// tf2::doTransform (*input_msg, output_msg, transform);
+		// header.frame_id = output_msg.header.frame_id;
 		return true;
 	}
 

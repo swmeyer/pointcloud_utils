@@ -1,0 +1,46 @@
+<launch>
+    <node pkg="pointcloud_utils" type="plane_parser" name="plane_parser"
+          required="true" output="screen" cwd="node">
+         <param name="cloud_topic_in" 	value="/invz_topic_1" />
+         <param name="cloud_topic_out" 	value="/filtered_points" />
+         <param name="visualization_topic" value="/markers" />
+
+         <param name="print_plane_states" value="true" />
+         <param name="use_point_track_method" value="false" />
+         <param name="visualize_plane" value="true" />
+         <param name="track_plane_states_over_time" value="true" />
+
+         <param name="iterate_plane_fit" value="true" />
+         <param name="max_plane_fit_iterations" value="15" />
+         <param name="outlier_point_tolerance" value="0.05" />
+
+         <param name="min_points_to_fit" value="10" />
+         <param name="report_offsets_at_origin" value="false" /> #the alternative is to report plane distance vector at origin
+
+         <param name="plane_direction" value="z" />
+
+        <param name="plane_x_min" value="1.0" />
+         <param name="plane_x_max" value="2.8" />
+         <param name="plane_y_min" value="0.3" />
+         <param name="plane_y_max" value="1" />
+         <param name="plane_z_min" value="-10" />
+         <param name="plane_z_max" value="10" />
+
+         #ground
+        <!-- <param name="plane_x_min" value="3.0" />
+         <param name="plane_x_max" value="4.0" />
+         <param name="plane_y_min" value="0.1" />
+         <param name="plane_y_max" value="0.4" />
+         <param name="plane_z_min" value="-10" />
+         <param name="plane_z_max" value="10" /> -->
+
+         #x plane
+         <!-- <param name="plane_x_min" value="5.5" />
+         <param name="plane_x_max" value="6.5" />
+         <param name="plane_y_min" value="0.5" />
+         <param name="plane_y_max" value="0.7" />
+         <param name="plane_z_min" value="0.6" />
+         <param name="plane_z_max" value="0.8" /> -->
+
+    </node>
+</launch>  

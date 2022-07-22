@@ -1,0 +1,44 @@
+<launch>
+    <include file="$(find pointcloud_utils)/launch/lidar_calibration.launch" />
+
+    <node pkg="pointcloud_utils" type="pointcloud_grid_parser" name="pc_grid_parser" required="true" output="screen">
+        <param name="cloud_topic" 		value="/velodyne_points" />
+        <param name="base_frame"      value="remote/base_footprint" />
+        <param name="lidar_frame"     value="remote/lidar_link" />
+        <param name="image_pub_topic" 	value="/grid_image" />
+        <param name="costmap_pub_topic"	value="/map" />
+
+        <param name="parse_from_bag" value="true" />
+        <param name="bagfile" value="/home/stephanie/Documents/data/fp_bags_truckcomputer/day_2/day2_run1_part1_restamp.bag" />
+
+        <param name="constant_map_resolution" value="true" />
+        <param name="constant_map_size" value="true" />
+        <param name="use_bounds" 		value="true" />
+        <param name="recalculate_dynamic_bounds" value="false" />
+        <param name="use_raytrace_to_clear_space" value="true" />
+
+        <param name="map_resolution" 	value="0.5" /> #m/cell
+        <param name="map_width" 		value="512" /> #cell was 1024
+        <param name="map_height" 		value="512" /> #cell was 1024
+
+        <param name="value_scale_max" 		value="0.2" /> #[m] #was 5
+        <param name="value_scale_min" 		value="-0.9" /> #[m] #was 0
+        <param name="binary_map"      value="true" />
+
+        <param name="centered_x"      value="true" />
+        <param name="centered_y"      value="true" />
+
+        <param name="use_shell_pointstruct" value="false" />
+
+        
+        <param name="use_intensity" value="false" />
+
+        #bounds        
+      	<param name="x_min" value="-100"  /> #was -10
+      	<param name="x_max" value="100"  />
+      	<param name="y_min" value="-100" />
+      	<param name="y_max" value="100"  />
+      	<param name="z_min" value="-100" />
+      	<param name="z_max" value="100"  />
+    </node>
+</launch>

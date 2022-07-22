@@ -7,19 +7,20 @@
 #define POINTCLOUD_GRID_PARSER_HPP
 
 // -------------------------------
-#include <ros/ros.h>
-#include <sensor_msgs/PointCloud2.h>
-#include <nav_msgs/OccupancyGrid.h>
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/image_encodings.h>
+// #include "rclcpp/rclcpp.hpp"
+#include <iostream>
+#include <sensor_msgs/msg/point_cloud2.hpp>
+#include <nav_msgs/msg/occupancy_grid.hpp>
+#include <sensor_msgs/msg/image.hpp>
+// #include <sensor_msgs/msg/image_encodings.hpp>
 #include <Eigen/Dense>
 
-#include <dynamic_reconfigure/server.h>
-#include <pointcloud_utils/PointCloudUtilsConfig.h>
+// #include <dynamic_reconfigure/server.h>
+// #include <pointcloud_utils/PointCloudUtilsConfig.h>
 
-#include <tf2_sensor_msgs/tf2_sensor_msgs.h>
-#include <tf2_msgs/TFMessage.h>
-#include <geometry_msgs/TransformStamped.h>
+// #include <tf2_sensor_msgs/msg/tf2_sensor_msgs.hpp>
+#include <tf2_msgs/msg/tf_message.hpp>
+#include <geometry_msgs/msg/transform_stamped.hpp>
 
 #include "pointcloud_utils/pointcloud_utils.hpp"
 // -------------------------------
@@ -46,29 +47,46 @@ namespace pointcloud_utils
 
 		typedef struct
 		{
+			bool use_luminar_pointstruct; //if true, use the luminar-style pointstruct to parse the cloud
+
+			// Map Size settings
 			double resolution;			// [m/cell] grid resolution
 			int map_width;				//num cells in width
 			int map_height; 			//num cells in height
 			
 			bool centered_x;
 			bool centered_y;
-			
-			int new_map_width;
-			int new_map_height;
-			int new_resolution;
-			int new_value_scale_min;
-			int new_value_scale_max;
 
 			bool const_res;				//flag to freeze map resolution
 			bool const_size; 			//flag to limit map by cell num
 			bool use_bounds; 			//flag to use bounds on area of interest or not
 			bool use_first; 			//flag to control whether dynamic bounds are found once or every time
+			
+			//Map size bounds
+			double map_x_min;
+			double map_x_max;
+			double map_y_min;
+			double map_y_max;
+			double map_z_min;
+			double map_z_max;
+
+
+			//Map value settings
+
 			bool use_raytrace_to_clear_space; //flag to control whether to mark a three-value costmap or otherwise (note: overrides binary map)
 			bool make_binary_map; //if true, occupied cells have value 255, unoccupied 0
-			bool use_intensity; //if true, make a cell value from intensity rather than from height
-			bool use_shell_pointstruct; //if true, use the shell-style pointstruct to parse the cloud
+			bool make_intensity_map; //if true, make a cell value from intensity rather than from height
+			bool make_height_map; //if true, use height as cell value
 
-			// Area of interest bounds:
+			double binary_threshold; //If binary map and intensity map and/or height map at once, this is the value threshold that must be reached to indicate a 1 value
+
+			double height_scale;	// value to scale height by to make cell values
+			double intensity_scale; // value to scale intensity by to make cell values
+
+			
+			//Filter settings
+
+			// Area filter bounds:
 			double x_min;
 			double x_max;
 			double y_min;
@@ -76,19 +94,18 @@ namespace pointcloud_utils
 			double z_min;
 			double z_max;
 
-			//Intensity bounds:
+			//Intensity filter bounds:
 			double min_intensity;
 			double max_intensity;
-			
-			double value_scale_max;
-			double value_scale_min; //scaling parameters for converting between data types
 
+			int point_skip_num;
+			
 		} Settings;
 
 		void setSettings(Settings& settings);
 		void getSettings(Settings& settings);
 
-		void setTransform(geometry_msgs::TransformStamped& transform);
+		void setTransform(geometry_msgs::msg::TransformStamped& transform);
 
 		void getMapBytes(std::vector<uint8_t>& bytes);
 		void getGridBytes(std::vector<uint8_t>& bytes);
@@ -103,7 +120,7 @@ namespace pointcloud_utils
 	 	 * @param    transform - transform to intialize with (between cloud frame and robot base frame)
 		 * @return   bool     - true if class is ready to work
 		 */
-		bool init(PointCloudGridParser::Settings& settings, geometry_msgs::TransformStamped& transform);
+		bool init(PointCloudGridParser::Settings& settings, geometry_msgs::msg::TransformStamped& transform);
 
 		/**
 		 * @Function 	updateCloud
@@ -113,16 +130,16 @@ namespace pointcloud_utils
 		 * @Return 		void
 		 * @Brief 		Reacts to incoming pointcloud messages.
 		 */
-		template <class T> void updateCloud(const sensor_msgs::PointCloud2::ConstPtr& msg, std::vector<uint8_t>& grid_image, std::vector<uint8_t>& map);
+		template <class T> void updateCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& msg, std::vector<uint8_t>& grid_image, std::vector<uint8_t>& map);
 	
 	
 	private:
-		std_msgs::Header header; //Header from most recent pointcloud message
+		std_msgs::msg::Header header; //Header from most recent pointcloud message
 
 		std::vector<pointcloud_utils::simplePointstruct> last_cartesian_cloud;
 		std::vector<pointcloud_utils::polarPointstruct>  last_polar_cloud;
 
-		geometry_msgs::TransformStamped transform;
+		geometry_msgs::msg::TransformStamped transform;
 
 		Eigen::MatrixXf grid;
 		std::vector<uint8_t> grid_bytes;
@@ -149,8 +166,8 @@ namespace pointcloud_utils
 		//========================================
 		bool transformToOutputFrame
 		(
-		    const sensor_msgs::PointCloud2::ConstPtr& input_msg,
-		    sensor_msgs::PointCloud2& output_msg
+		    const sensor_msgs::msg::PointCloud2::SharedPtr& input_msg,
+		    sensor_msgs::msg::PointCloud2& output_msg
 		);
 
 		/**

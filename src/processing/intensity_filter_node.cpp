@@ -1,65 +1,81 @@
 /** 
  *Author: Stephanie Meyer swm0022@auburn.edu 8 Sept 2020
- * Brief: Implementation of a class to republishes the incoming point cloud as a filtered cloud containing only the points with intensity
+ * Brief: Implementation of a class to republish the incoming point cloud as a filtered cloud containing only the points with intensity
  *        within a given threshold range
  * File: intensity_filter_node.cpp
  */
 
 // --------------------------
-#include <ros/ros.h>
-#include <sensor_msgs/PointCloud2.h>
+#include "rclcpp/rclcpp.hpp"
+#include <sensor_msgs/msg/point_cloud_2.hpp>
 #include <pointcloud_utils/pointcloud_utils.hpp>
 #include <pointcloud_utils/processing/intensity_filter.hpp>
 // --------------------------
 
-// --------------------------
-int intensity_min;
-int intensity_max;
-
-ros::Publisher lidar_pub;
-
-pointcloud_utils::IntensityFilter* intensity_filter;
-// --------------------------
-
-/**
- * @Function 	pointCloudCallback
- * @Param 		msg - incoming data message
- * @Return 		void
- * @Brief 		Reacts to incoming pointcloud messages. Calls the save-to-file function
- */
-void pointCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& msg)
+class IntensityFilterNode : public rclcpp:Node
 {
-	sensor_msgs::PointCloud2 filtered_cloud;
-	std::vector<pointcloud_utils::pointstruct> point_vector;
+	public:
+		IntensityFilterNode() :
+			Node("intensity_filter_node")
+		{
+			//main content
 
-	intensity_filter->filterIntensity(msg, point_vector, filtered_cloud, intensity_min, intensity_max);
+			//Declare parameters
+			this->declare_parameter<std::string>("cloud_topic_in", "/velodyne_points");
+			this->declare_parameter<std::string>("cloud_topic_out", "/filtered_points");
 
-	lidar_pub.publish(filtered_cloud);
-}
+			this->declare_parameter<int>("intensity_min", 20);
+			this->declare_parameter<int>("intensity_max", 250);
 
 
-int main(int argc, char* argv[])
-{
-	ros::init(argc, argv, "distance_publisher");
-	ros::NodeHandle n_("~");
-	ros::NodeHandle n;
+			//Get parameters
+			std::string lidar_sub_topic, lidar_pub_topic;
+			this->get_parameter<std::string>("cloud_topic_in", lidar_sub_topic);
+			this->get_parameter<std::string>("cloud_topic_out", lidar_pub_topic);
 
-	std::string lidar_sub_topic, lidar_pub_topic;
-	n_.param<std::string>("cloud_topic_in", lidar_sub_topic, "/velodyne_points");
-	n_.param<std::string>("cloud_topic_out", lidar_pub_topic, "/filtered_points");
+			this->get_parameter<int>("intensity_min", intensity_min);
+			this->get_parameter<int>("intensity_max", intensity_max);
 
-	n_.param<int>("intensity_min", intensity_min, 20);
-	n_.param<int>("intensity_max", intensity_max, 250);
+			intensity_filter = new pointcloud_utils::IntensityFilter();
 
-	intensity_filter = new pointcloud_utils::IntensityFilter();
-
-	lidar_pub = n.advertise<sensor_msgs::PointCloud2>(lidar_pub_topic, 1);
+			lidar_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>(lidar_pub_topic, 1);
 	
-	ros::Subscriber lidar_sub = n.subscribe(lidar_sub_topic, 1, &pointCloudCallback);
+			lidar_sub = n.subscribe(lidar_sub_topic, 1, std::bind(&IntensityFilterNode::pointCloudCallback, this, std::placeholders::_1));
 
-	ros::spin();
+		}
 
-	delete intensity_filter;
+		~IntensityFilterNode()
+		{
+			delete intensity_filter;
+		}
 
-	return 0;
+	private:
+		//Variables
+
+		int intensity_min;
+		int intensity_max;
+		
+		rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr lidar_pub;
+		rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr lidar_sub;
+
+		pointcloud_utils::IntensityFilter* intensity_filter;
+
+
+		//Methods
+
+		/**
+		 * @Function 	pointCloudCallback
+		 * @Param 		msg - incoming data message
+		 * @Return 		void
+		 * @Brief 		Reacts to incoming pointcloud messages. Calls the save-to-file function
+		 */
+		void pointCloudCallback(const sensor_msgs::msg::PointCloud2::SharedPtr& msg)
+		{
+			sensor_msgs::msg::PointCloud2 filtered_cloud;
+			std::vector<pointcloud_utils::pointstruct> point_vector;
+		
+			intensity_filter->filterIntensity(msg, point_vector, filtered_cloud, intensity_min, intensity_max);
+		
+			lidar_pub->publish(filtered_cloud);
+		}
 }

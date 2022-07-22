@@ -1,0 +1,28 @@
+<launch>
+    <node pkg="pointcloud_utils" type="pointcloud_to_laserscan" name="lidar_to_laserscan" output="screen" required="true" >
+    	<!-- <param name="cloud_sub_topic" value="/airsim_node/PhysXCar/lidar/VLP16_1" /> -->
+        <param name="cloud_sub_topic" value="/invz_topic_1" />
+    	<param name="scan_pub_topic" value="/scan" />
+        <param name="scan_frame"     value="innoviz"/>
+
+    	<param name="target_vertical_angle"     value="0.0" />     # [rad] #note that using a non-zero angle will result in a projection of the point onto a flat plane and will be reported with zero height from sensor origin
+        <param name="vertical_angle_tolerance" value="0.001" /> # [rad]
+
+        <param name="filter_by_height" value="true" />
+        <param name="target_height"    value="0.0" />
+    	<param name="height_tolerance" value="0.017" /> # [m]
+
+        <param name="use_fixed_resolution" value="true" /> #note: using a non-fixed resolution may introduce positional inaccuracies in the scan, but will take up only the required amount of memory space (will be a dense scan)
+        <param name="scan_resultion" value="0.001" /> # [rad]
+
+        <param name="visualize_3D_scan" value="true" />
+
+        <param name="min_angle" value="-2.35" />
+        <param name="max_angle" value="2.35" />
+
+        <param name="limit_front_distance" value="false" />
+        <param name="front_distance_limit" value="10" />
+    </node>
+
+    <!--<node pkg="tf" type="static_transform_publisher" name="scan_tf_broadcaster" args="0 0 0  0 -1.0 0 VLP16_1 scan_1 10" /> -->
+</launch>

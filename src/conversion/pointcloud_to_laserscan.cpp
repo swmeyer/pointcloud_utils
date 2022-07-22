@@ -30,7 +30,7 @@ namespace pointcloud_utils
 	 * @param 		scan  - space to store the converted laserscan
 	 * @return 		void
 	 */
-	void PointCloudToLaserScanConverter::convertCloud(const sensor_msgs::PointCloud2::ConstPtr& cloud_in, std::vector<pointcloud_utils::pointstruct>& cloud, sensor_msgs::LaserScan& scan)
+	void PointCloudToLaserScanConverter::convertCloud(const sensor_msgs::msg::PointCloud2::ConstPtr& cloud_in, std::vector<pointcloud_utils::pointstruct>& cloud, sensor_msgs::msg::LaserScan& scan)
 	{
 		//convert cloud to 2D and republish!
 

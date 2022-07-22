@@ -7,7 +7,7 @@
 #define POINTCLOUD_TO_LASERSCAN_HPP
 
 // --------------------------
-#include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/msg/point_cloud_2.hpp>
 #include <sensor_msgs/LaserScan.h>
 #include <pointcloud_utils/pointcloud_utils.hpp>
 // --------------------------

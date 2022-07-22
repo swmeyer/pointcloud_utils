@@ -42,7 +42,7 @@ namespace pointcloud_utils
 	 * @param 		cloud - space to store converted 3D cloud
 	 * @return 		void
 	 */
-	void GroundProcessor::updateCloud(const sensor_msgs::PointCloud2::ConstPtr& cloud_in, std::vector<pointcloud_utils::pointstruct>& cloud)
+	void GroundProcessor::updateCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_in, std::vector<pointcloud_utils::pointstruct>& cloud)
 	{
 		//std::cout << "Points in: " << cloud_in->width << "\n";
 		plane_detected = false;
@@ -62,7 +62,7 @@ namespace pointcloud_utils
 		this->plane_states = plane_states;
 		//std::cout << "Plane coefficients: " << this->plane_parameters.a_d << ", " << this->plane_parameters.b_d << ", " << this->plane_parameters.c_d << "\n";
 		
-		//std::cout << "States roll and pitch: " << this->plane_states.roll << ", " << this->plane_states.pitch << "\n";
+		std::cout << "States roll and pitch: " << this->plane_states.roll << ", " << this->plane_states.pitch << "\n";
 
 		plane_detected = true;
 	}
@@ -95,7 +95,7 @@ namespace pointcloud_utils
 	 * @param 		cloud - point vector version of the aligned cloud
 	 * @return 		void
 	 */
-	void GroundProcessor::alignToGround(std::vector<pointcloud_utils::pointstruct>& cloud_in, sensor_msgs::PointCloud2& aligned_cloud, std::vector<pointcloud_utils::pointstruct>& cloud)
+	void GroundProcessor::alignToGround(std::vector<pointcloud_utils::pointstruct>& cloud_in, sensor_msgs::msg::PointCloud2& aligned_cloud, std::vector<pointcloud_utils::pointstruct>& cloud)
 	{
 		if (!plane_detected)
 		{
@@ -155,7 +155,7 @@ namespace pointcloud_utils
 	 * @param 		cloud - point vector version of the aligned cloud
 	 * @return 		void
 	 */
-	void GroundProcessor::alignToGround(sensor_msgs::PointCloud2& cloud_in, sensor_msgs::PointCloud2& aligned_cloud, std::vector<pointcloud_utils::pointstruct>& cloud)
+	void GroundProcessor::alignToGround(sensor_msgs::msg::PointCloud2& cloud_in, sensor_msgs::msg::PointCloud2& aligned_cloud, std::vector<pointcloud_utils::pointstruct>& cloud)
 	{
 		pointcloud_utils::convertFromPointCloud2(cloud_in, cloud);
 		alignToGround(cloud, aligned_cloud, cloud);
@@ -169,7 +169,7 @@ namespace pointcloud_utils
 	 * @param 		cloud - point vector version of the aligned cloud
 	 * @return 		void
 	 */
-	void GroundProcessor::alignToGround(sensor_msgs::PointCloud2& aligned_cloud, std::vector<pointcloud_utils::pointstruct>& cloud)
+	void GroundProcessor::alignToGround(sensor_msgs::msg::PointCloud2& aligned_cloud, std::vector<pointcloud_utils::pointstruct>& cloud)
 	{
 		std::vector<pointcloud_utils::pointstruct> local_current_cloud = this->current_cloud;
 		alignToGround(local_current_cloud, aligned_cloud, cloud);
@@ -188,8 +188,8 @@ namespace pointcloud_utils
 	 */
 	void GroundProcessor::separateGround
 	(
-		sensor_msgs::PointCloud2& ground_msg, 
-		sensor_msgs::PointCloud2& nonground_msg, 
+		sensor_msgs::msg::PointCloud2& ground_msg, 
+		sensor_msgs::msg::PointCloud2& nonground_msg, 
 		std::vector<pointcloud_utils::pointstruct>& ground,
 		std::vector<pointcloud_utils::pointstruct>& nonground
 	)
@@ -207,7 +207,7 @@ namespace pointcloud_utils
 		ground.clear();
 		nonground.clear();
 
-		for (pointcloud_utils::pointstruct pt : local_current_cloud )
+		for (T pt : local_current_cloud )
 		{
 			if (plane_parser->pointIsOnPlane(pt, plane_parameters, settings.point_to_plane_tolerance))
 			{
@@ -257,7 +257,7 @@ namespace pointcloud_utils
 		Eigen::MatrixXf point_matrix(4, cloud.size());
 
 		int i = 0;
-		for (pointcloud_utils::pointstruct pt : cloud)
+		for (T pt : cloud)
 		{
 			point_matrix.col(i) << pt.x, pt.y, pt.z, 1;
 			i++;
@@ -284,9 +284,9 @@ namespace pointcloud_utils
 	 * @param 		plane_states - place to store detected plane states
 	 * @return 		void
 	 */
-	void GroundProcessor::detectGround(const sensor_msgs::PointCloud2::ConstPtr& cloud_in, std::vector<pointcloud_utils::pointstruct>& cloud, PlaneParser::PlaneParameters& plane_parameters, PlaneParser::States& plane_states)
+	void GroundProcessor::detectGround(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_in, std::vector<pointcloud_utils::pointstruct>& cloud, PlaneParser::PlaneParameters& plane_parameters, PlaneParser::States& plane_states)
 	{
-		sensor_msgs::PointCloud2 parsed_cloud;
+		sensor_msgs::msg::PointCloud2 parsed_cloud;
 		bool continue_from_last_plane = true;
 
 		//std::cout << "Detecting ground! points: " << cloud_in->width << "\n";

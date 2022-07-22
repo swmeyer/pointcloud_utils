@@ -266,7 +266,7 @@ def init():
 	file_list_name = os.path.join(filepath, file_list_name)
 
 	queue = 1
-	rospy.Subscriber(pointcloud_sync_topic, PointCloud2, pointcloudCallback, queue_size=queue)
+	rospy.Subscription(pointcloud_sync_topic, PointCloud2, pointcloudCallback, queue_size=queue)
 
 	print("Initialization finished successfully.")
 	return True

@@ -75,6 +75,6 @@ if __name__ == '__main__':
 
 	queue = 1
 		
-	rospy.Subscriber(pointcloud_topic_in, PointCloud2, pointcloudCallback, queue_size=queue)
+	rospy.Subscription(pointcloud_topic_in, PointCloud2, pointcloudCallback, queue_size=queue)
 
 	rospy.spin()

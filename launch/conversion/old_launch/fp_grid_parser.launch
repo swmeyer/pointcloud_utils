@@ -1,0 +1,95 @@
+<launch>
+    <include file="$(find pointcloud_utils)/launch/lidar_calibration3.launch" />
+    <include file="$(find pointcloud_utils)/launch/lidar_calibration4.launch" />
+
+    <arg name="min_x" default="-100" />
+    <arg name="max_x" default="100" />
+    <arg name="min_y" default="-100" />
+    <arg name="max_y" default="100" />
+    <arg name="min_z" default="-10" />
+    <arg name="max_z" default="10" />
+
+    <!-- <node pkg="pointcloud_utils" type="pointcloud_grid_parser" name="fp_grid_parser_v" required="true">
+        <param name="cloud_topic" 		value="/velodyne_points" />
+        <param name="base_frame"      value="base" />
+        <param name="lidar_frame"     value="velodyne" />
+        <param name="image_pub_topic" 	value="/grid_image/velodyne" />
+        <param name="costmap_pub_topic"	value="/map" />
+
+        <param name="parse_from_bag" value="false" />
+        <param name="bagfile" value="/home/stephanie/Documents/data/fp_bags_truckcomputer/day_2/day2_run1_part1_restamp.bag" />
+
+        <param name="constant_map_resolution" value="true" />
+        <param name="constant_map_size" value="true" />
+        <param name="use_bounds" 		value="true" />
+        <param name="recalculate_dynamic_bounds" value="false" />
+        <param name="use_raytrace_to_clear_space" value="false" />
+
+        <param name="map_resolution" 	value="0.1" /> #m/cell
+        <param name="map_width" 		value="512" /> #cell was 1024
+        <param name="map_height" 		value="512" /> #cell was 1024
+
+        <param name="value_scale_max" 		value="0.2" /> #[m] #was 5
+        <param name="value_scale_min" 		value="-0.9" /> #[m] #was 0
+        <param name="binary_map"      value="true" />
+
+        <param name="centered_x"      value="false" />
+        <param name="centered_y"      value="true" />
+
+        <param name="min_intensity"   value="11" />
+        <param name="max_intensity"   value="200" />
+
+        <param name="use_shell_pointstruct" value="false" />
+
+        #bounds        
+      	<param name="x_min" value="`0"  /> #was -10
+      	<param name="x_max" value="60"  />
+      	<param name="y_min" value="-10" />
+      	<param name="y_max" value="10"  />
+      	<param name="z_min" value="1" />
+      	<param name="z_max" value="4"  />
+    </node> -->
+
+    <node pkg="pointcloud_utils" type="pointcloud_grid_parser" name="fp_grid_parser_i" required="true" output="screen">
+        <param name="cloud_topic"     value="/innoviz_points" /> # was /invz_topic_1
+        <param name="base_frame"      value="base" />
+        <param name="lidar_frame"     value="innoviz" />
+        <param name="image_pub_topic"   value="/grid_image/innoviz" />
+        <param name="costmap_pub_topic" value="/map" />
+
+        <param name="parse_from_bag" value="true" />
+        <param name="bagfile" value="/home/stephanie/Documents/data/fp_bags_truckcomputer/day_2/day2_run1_part1_restamp.bag" />
+
+        <param name="constant_map_resolution" value="true" />
+        <param name="constant_map_size" value="true" />
+        <param name="use_bounds"      value="true" />
+        <param name="recalculate_dynamic_bounds" value="false" />
+        <param name="use_raytrace_to_clear_space" value="false" />
+
+        <param name="map_resolution"  value="0.1" /> #m/cell
+        <param name="map_width"       value="512" /> #cell was 1024
+        <param name="map_height"      value="512" /> #cell was 1024
+
+        <param name="value_scale_max"     value="0.2" /> #[m] #was 5
+        <param name="value_scale_min"     value="-0.9" /> #[m] #was 0
+        <param name="binary_map"      value="true" />
+
+        <param name="centered_x"      value="false" />
+        <param name="centered_y"      value="true" />
+
+        <param name="min_intensity"   value="13" />
+        <param name="max_intensity"   value="200" />
+
+        <param name="use_shell_pointstruct" value="false" />
+
+        <param name="use_intensity" value="false" />
+
+        #bounds        
+        <param name="x_min" value="0"  /> #was -10
+        <param name="x_max" value="60"  />
+        <param name="y_min" value="-10" />
+        <param name="y_max" value="10"  />
+        <param name="z_min" value="-10" /> #was 1 for removing road
+        <param name="z_max" value="10"  /> #was 1.5 for focusing on road
+    </node>
+</launch>

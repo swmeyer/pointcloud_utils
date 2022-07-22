@@ -1,71 +1,91 @@
 /** Author: Stephanie Meyer swmeyer16@gmail.com 3 Feb 2020
-/* Brief: ROS node to wrap a point cloud saver class
-/* File: pointcloud_saver_node.cpp
-*/
+ * Brief: ROS node to wrap a point cloud saver class
+ * File: pointcloud_saver_node.cpp
+ */
 
 // --------------------------
-#include <ros/ros.h>
-#include <sensor_msgs/PointCloud2.h>
-
-#include <rosbag/bag.h>
-#include <rosbag/view.h>
+#include "rclcpp/rclcpp.hpp"
+#include <sensor_msgs/msg/point_cloud2.hpp>
 
 #include "pointcloud_utils/io/pointcloud_saver.hpp"
 // --------------------------
 
-int main(int argc, char* argv[])
+class PointCloudSaverNode : public rclcpp::Node
 {
-	ros::init(argc, argv, "pointcloud_saver");
-	ros::NodeHandle n_("~");
-	ros::NodeHandle n;
+	public:
+		PointCloudSaverNode() : 
+			Node("pointcloud_saver_node")
+		{
+			//main content
 
-	//Get params
-	std::string lidar_topic;
-	n_.param<std::string>("cloud_topic", lidar_topic, "/cloud");
+			//Declare params
+			this->declare_parameter<std::string>("cloud_topic", "/luminar_points");
+			this->declare_parameter<std::string>("filename_base", "points");
+			this->declare_parameter<std::string>("file_extension", ".csv");
+			this->declare_parameter<bool>("parse_from_bag", false);
+			this->declare_parameter<std::string>("bagfile", "points.bag");
+		
 
-	std::string filename;
-	n_.param<std::string>("filename_base", filename, "points");
+			//Get params
+			std::string lidar_topic;
+			this->get_parameter<std::string>("cloud_topic", lidar_topic);
+		
+			std::string filename;
+			this->get_parameter<std::string>("filename_base", filename);
+		
+			std::string filetype;
+			this->get_parameter<std::string>("file_extension", filetype);
+		
+			bool from_bag;
+			this->get_parameter<bool>("parse_from_bag", from_bag);
+			std::string bagfile_name;
+			this->get_parameter<std::string>("bagfile", bagfile_name);
+		
+			//Make pointcloud svaver object
+			pc_saver = new pointcloud_utils::PointCloudSaver(filename, filetype);
 
-	std::string filetype;
-	n_.param<std::string>("file_extension", filetype, ".csv");
+			cloud_sub = this->create_subscription<sensor_msgs::msg::PointCloud2>(lidar_topic, rclcpp::SensorDataQoS(), std::bind(&PointCloudSaverNode::pointCloudCallback, this, std::placeholders::_1));
 
-	bool from_bag;
-	n_.param<bool>("parse_from_bag", from_bag, false);
-	std::string bagfile_name;
-	n_.param<std::string>("bagfile", bagfile_name, "points.bag");
+		}
+
+		~PointCloudSaverNode()
+		{
+			pc_saver->saveTimesToFile();
+		}
+
+	private:
+		rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr cloud_sub;  		//subscriber for the cloud to save
+		pointcloud_utils::PointCloudSaver* pc_saver;
+
+		//Methods:
+		/**
+		 * @Function 	pointCloudCallback
+		 * @Param 		msg - incoming data message
+		 * @Return 		void
+		 * @Brief 		Reacts to incoming pointcloud messages. Calls the save-to-file function
+		 */
+		void pointCloudCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
+		{
+			//memcpy into a struct (parses the data into the struct values)
+			// std::vector<pointcloud_utils::luminarPointstruct> cloud;
+			// cloud.resize(msg->width);
+			// std::memcpy(&(cloud[0]), &(msg->data[0]), msg->row_step);
+		
+			//call save to file
+			// savePointsToFile(cloud);
+		
+			// this->times.push_back(msg->header.stamp);
+
+			this->pc_saver->setCurrentCloud(msg);
+		}
+
+};
 
 
-
-	//Make pointcloud svaver object
-	PointCloudSaver pc_saver(lidar_topic, filename, filetype, n);
-
-	if (from_bag)
-	{
-    	rosbag::Bag bag;
-		//std::string bagstring = "/home/stephanie/Documents/data/fp_bags_truckcomputer/day_2/day2_run1_part2_restamp.bag";
-    	std::cout << "Opening bag: " << bagfile_name  << "\n";
-	
-    	bag.open(bagfile_name);  // BagMode is Read by default
-    	
-    	for(rosbag::MessageInstance const m: rosbag::View(bag, rosbag::TopicQuery(lidar_topic)))
-    	{
-    	  sensor_msgs::PointCloud2::ConstPtr i = m.instantiate<sensor_msgs::PointCloud2>();
-    	  if (i != nullptr)
-    	  {    	    
-    	    pc_saver.setCurrentCloud(i);
-    	  }
-    	  if (!ros::ok())
-    	  {
-    	      break;
-    	  }
-    	}
-
-    	bag.close();
-    }
-
-	ros::spin();
-
-	pc_saver.saveTimesToFile();
-
+int main(int argc, char* argv[])
+{	
+	rclcpp::init(argc, argv);
+    rclcpp::spin(std::make_shared<PointCloudSaverNode>());
+    rclcpp::shutdown();
 	return(0);
 }

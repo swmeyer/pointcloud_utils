@@ -9,7 +9,7 @@
 #define POINTCLOUD_STAMPER_HPP
 
 // -------------------------------
-#include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/msg/point_cloud_2.hpp>
 // -------------------------------
 
 namespace pointcloud_utils

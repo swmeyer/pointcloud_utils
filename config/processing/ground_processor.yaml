@@ -1,0 +1,37 @@
+/lidar_processing:
+  ground_processor:
+    ros__parameters:
+      cloud_topic_in: '/luminar_front_points'
+      aligned_topic_out: '/lidar/aligned'
+      ground_topic_out: '/lidar/ground_points'
+      nonground_topic_out: '/lidar/nonground_points'
+      visualize_plane: True
+      align_to_ground: False
+      separate_ground: False
+      visualization_topic: '/plane_markers'
+      plane_x_min: 10.0
+      plane_x_max: 20.0
+      plane_y_min: -5.0
+      plane_y_max: 5.0
+      plane_z_min: -10.0
+      plane_z_max: 10.0
+      point_skip_num: 0
+      invert_cloud_step_through: True
+      max_point_count: 1000
+      iterate_plane_fit: True
+      max_plane_fit_iterations: 10
+      outlier_point_tolerance: 0.1
+      min_points_to_fit: 20
+      report_offsets_at_origin: False
+      find_attitude_angles: False
+      find_euler_angles: True
+      find_simple_angles: False
+      find_quaternions: False
+      covariance_solution_type: 'least_squares'
+      plane_fit_type: 'svd'
+      angle_solution_type: 'euler_angles'
+      intensity_min: 0.0
+      intensity_max: 2.0
+      aligned_cloud_frame: 'ground'
+      ground_point_tolerance: 0.6
+      pt_slope_threshold: 0.17

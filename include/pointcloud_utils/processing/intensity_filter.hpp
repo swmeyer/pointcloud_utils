@@ -9,8 +9,8 @@
 #define INTENSITY_FILTER_HPP
 
 // --------------------------
-#include <sensor_msgs/PointCloud2.h>
-#include <sensor_msgs/PointField.h>
+#include <sensor_msgs/msg/point_cloud_2.hpp>
+#include <sensor_msgs/msg/point_field.hpp>
 #include <pointcloud_utils/pointcloud_utils.hpp>
 // --------------------------
 
@@ -36,9 +36,9 @@ namespace pointcloud_utils
 		 */
 		void filterIntensity
 		(
-			const sensor_msgs::PointCloud2::ConstPtr& cloud_in, 
+			const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_in, 
 			std::vector<pointcloud_utils::pointstruct>& cloud, 
-			sensor_msgs::PointCloud2& filtered_cloud,
+			sensor_msgs::msg::PointCloud2& filtered_cloud,
 			int intensity_min, 
 			int intensity_max);
 		

@@ -180,7 +180,7 @@ bool pointcloud2ToMesh::convertToMesh()
 void pointcloud2ToMesh::getCloud(std::string cloud_topic)
 {
   this->has_cloud_ = false;
-  ros::Subscriber cloud_in_sub = this->nh_.subscribe(cloud_topic, 1, &pointcloud2ToMesh::cloudInCallback, this);
+  ros::Subscription cloud_in_sub = this->nh_.subscribe(cloud_topic, 1, &pointcloud2ToMesh::cloudInCallback, this);
   ROS_INFO_STREAM("");
   ROS_INFO_STREAM("Waiting for cloud to be published.\n");
   //has_cloud_ will be false until the cloudInCallback has been run on a subscribed message
@@ -207,7 +207,7 @@ void pointcloud2ToMesh::getCloud(std::string cloud_topic)
 void pointcloud2ToMesh::getCloud()
 {
   this->has_cloud_ = false;
-  ros::Subscriber cloud_in_sub = this->nh_.subscribe(cloud_topic_, 1, &pointcloud2ToMesh::cloudInCallback, this);
+  ros::Subscription cloud_in_sub = this->nh_.subscribe(cloud_topic_, 1, &pointcloud2ToMesh::cloudInCallback, this);
   ROS_INFO_STREAM("");
   ROS_INFO_STREAM("Waiting for cloud to be published.\n");
   //has_cloud_ will be false until the cloudInCallback has been run on a subscribed message

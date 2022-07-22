@@ -21,30 +21,30 @@ namespace pointcloud_utils
 	 * @Return 		void
 	 * @Brief 		Reacts to incoming pointcloud messages.
 	 */
-	template <class T> void PointCloudGridParser::updateCloud(const sensor_msgs::PointCloud2::ConstPtr& msg, std::vector<uint8_t>& grid_image, std::vector<uint8_t>& map)
+	template <class T> void PointCloudGridParser::updateCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& msg, std::vector<uint8_t>& grid_image, std::vector<uint8_t>& map)
 	{
 		static bool first = true;
-		std::cout << "Updating cloud inside grid parser\n";
+		// std::cout << "Updating cloud inside grid parser\n";
 		header = msg->header;
-		sensor_msgs::PointCloud2 base_cloud;
+		sensor_msgs::msg::PointCloud2 base_cloud;
 		transformToOutputFrame(msg, base_cloud);
-		std::cout << "Cloud transformed\n";
+		// std::cout << "Cloud transformed\n";
 		//memcpy into a struct (parses the data into the struct values)
 		std::vector<T> cloud;
 		cloud.resize(msg->width);
-		std::memcpy(&(cloud[0]), &(base_cloud.data[0]), msg->row_step);
-		std::cout << "Cloud parsed out to pointstruct\n";
+		memcpy(&(cloud[0]), &(base_cloud.data[0]), msg->row_step);
+		// std::cout << "Cloud parsed out to pointstruct\n";
 	
 		//parse into grid
 		if (settings.use_raytrace_to_clear_space)
 		{
-			std::cout << "doing raytrace\n";
+			// std::cout << "doing raytrace\n";
 			parseGridRayTrace<T>(cloud, grid, first);
 		} else
 		{
 			parseGrid<T>(cloud, grid, first);
 		}
-		std::cout << "Finished parsing into grid\n";
+		// std::cout << "Finished parsing into grid\n";
 	
 		//std::cout << "grid: \n" << grid << "\n\n"; 
 	
@@ -55,11 +55,15 @@ namespace pointcloud_utils
 
 		grid_image.clear();
 		map.clear();
-		std::cout << "Setting grid bytes\n";
-		for (int i = 0; i < grid_bytes.size(); i++)
-		{
-			grid_image.push_back(grid_bytes[i]);
-		}
+		// std::cout << "Setting grid bytes\n";
+		//Note: tried replacing this with memcpy, and it actually published a bit faster more regularly with the for loop :/
+		// for (int i = 0; i < grid_bytes.size(); i++)
+		// {
+		// 	grid_image.push_back(grid_bytes[i]);
+		// }
+		grid_image.resize(this->grid_bytes.size());
+		memcpy(&(grid_image[0]), &(this->grid_bytes[0]), sizeof(this->grid_bytes[0] * this->grid_bytes.size()) ); 
+		
 		//grid_image.resize(this->grid_bytes.size());
 		//grid_image = this->grid_bytes;
 		//std::cout << "Note: Map bytes not saved\n";
@@ -159,14 +163,12 @@ namespace pointcloud_utils
 	 */
 	template <class T> void PointCloudGridParser::parseGrid(std::vector<T>& cloud, Eigen::MatrixXf& grid, const bool initialize)
 	{
-		std::cout << "Starting grid parsing\n";
+		// std::cout << "Starting grid parsing\n";
 		determineMapParams<T>(cloud, initialize);
-		std::cout << "determined map params\n";
-
+		// std::cout << "determined map params\n";
 
 		std::cout << "resolution: " << settings.resolution << "\n";
 		std::cout << "Map size: " << settings.map_width << "\n";
-
 
 		//reset map -------------------------------------------------
 		//if ((initialize && settings.use_first) || (!settings.use_first))
@@ -189,12 +191,17 @@ namespace pointcloud_utils
 		int skip_count = 0;
 		int pass_count = 0;
 		//fill grid --------------------------------------------------------
-		std::cout << "Z min: " << settings.z_min << "\n";
-		for (T pt : cloud)
+		// std::cout << "Z min: " << settings.z_min << "\n";
+
+		for (uint n = 0; n < cloud.size(); n += 1 + settings.point_skip_num)
 		{
+			skip_count += settings.point_skip_num;
+
+			T pt = cloud[n];
 			const float* intensity;
 			intensity = pointcloud_utils::getIntensity(pt);
 
+			// Filter the cloud by intensity and height
 			if (pt.z < settings.z_min || pt.z > settings.z_max ||
 				pt.x < settings.x_min || pt.x > settings.x_max ||
 				pt.y < settings.y_min || pt.y > settings.y_max)
@@ -205,7 +212,7 @@ namespace pointcloud_utils
 			{
 				if (intensity != NULL)
 				{
-					if (*intensity < settings.min_intensity || *intensity > settings.max_intensity)
+					if (*intensity <= settings.min_intensity || *intensity >= settings.max_intensity)
 					{
 						skip_count++;
 						continue;
@@ -250,38 +257,57 @@ namespace pointcloud_utils
 			// i = (map_height - (pt.x - x_min) / (resolution));
 			// j = (map_width - (pt.y - y_min) / (resolution));
 	
+			
+			//SET CELL VALUE
+
 			//if point within bounds, use it to populate the grid
-			if (i < settings.map_height && j < settings.map_width && i >= 0 && j >= 0)
+			if (i < (uint) settings.map_height && j < (uint) settings.map_width && i >= 0 && j >= 0)
 			{
-				//increase grid count
-	
+				// std::cout << "About to set cell values\n";
+				double value = 0;
+
+				if (settings.make_intensity_map && settings.make_height_map)
+				{
+					value = settings.intensity_scale * *intensity + settings.height_scale * pt.z;
+				} else if (settings.make_intensity_map)
+				{
+					if (intensity != NULL)
+					{
+						value = *intensity * settings.intensity_scale;
+					}
+				} else if (settings.make_height_map)
+				{
+					value = settings.height_scale * pt.z;
+				} else //must be binary only, or unspecified (default to binary)
+				{
+					value = settings.binary_threshold;
+				}
+
+				// std::cout << "Grid value acquired\n";
+
+				grid(i,j) = value;
+
 				if (settings.make_binary_map)
 				{
-					//Populate this cell wtih a full "on" value
-					map_grid_bytes[settings.map_width * (settings.map_height - i) + (settings.map_width - j)] = 255;
-					grid_bytes[settings.map_width * i + j] = 255;
+					if (grid(i,j) >= settings.binary_threshold)
+					{
+						//Populate this cell wtih a full "on" value
+						map_grid_bytes[settings.map_width * (settings.map_height - i) + (settings.map_width - j)] = 255;
+						grid_bytes[settings.map_width * i + j] = 255;
+					}
 				} else
 				{
-					if (settings.use_intensity)
-					{
-						grid(i,j) = std::max(grid(i,j), *intensity); //real-valued intensity grid
-					} else
-					{
-						grid(i,j) = std::max(grid(i,j), pt.z); //real-valued height grid
-					}
+					grid_bytes[settings.map_width * i + j] = std::min(std::max((double) grid(i,j), 0.0), 255.0);
 					
-					grid_bytes[settings.map_width * i + j] = std::round(std::min( ( std::max( (grid(i,j) - settings.value_scale_min), 0.0) * 256.0 ) / (settings.value_scale_max - settings.value_scale_min), 256.0)); //scaled value height grid
-					//value = std::min( ( std::max( (grid(i,j) - value_scale_min), 0.0) * 256.0 ) / (value_scale_max - value_scale_min), 256.0); 
-					//std::cout << "adjusted: " << grid(i,j) - value_scale_min << " range: " << value_scale_max - value_scale_min << std::endl;
-					//std::cout << "Target value: " << std::min( ( std::max( (grid(i,j) - value_scale_min), 0.0) * 256.0 ) / (value_scale_max - value_scale_min), 256.0) << std::endl;
-					//std::cout << "Z value: " << grid(i,j) << " converted: " << (float) grid_bytes[map_width * i + j] << "\n";
-					if (j < settings.map_height && i < settings.map_width)
+					if (j < (uint) settings.map_height && i < (uint) settings.map_width)
 					{
 						//TODO: this should be the same as the grid_bytes, yeah?
-						map_grid_bytes[settings.map_width * (settings.map_height - i) + (settings.map_width - j)] = (grid(i,j) * 256) / (settings.value_scale_max - settings.value_scale_min); //scaled value, flipped height grid
+						// map_grid_bytes[settings.map_width * (settings.map_height - i) + (settings.map_width - j)] = (grid(i,j) * 256) / (settings.value_scale_max - settings.value_scale_min); //scaled value, flipped height grid
+						map_grid_bytes[settings.map_width * (settings.map_height - i) + (settings.map_width - j)] = std::min(std::max((double) grid(i,j), 0.0), 255.0);
 					}
 				}
 			} 		
+
 		}
 		std::cout << "Out-of-bounds point count: " << skip_count << "\n In-bounds point count: " << pass_count << "\n";
 		std::cout << "Done parsing\n";
@@ -297,9 +323,9 @@ namespace pointcloud_utils
 	 */
 	template <class T> void PointCloudGridParser::parseGridRayTrace(std::vector<T>& cloud, Eigen::MatrixXf& grid, const bool initialize)
 	{
-		std::cout << "Starting grid parsing with ray trace\n";
+		// std::cout << "Starting grid parsing with ray trace\n";
 
-		std::cout << "Z min: " << settings.z_min << "\n";
+		// std::cout << "Z min: " << settings.z_min << "\n";
 
 		determineMapParams<T>(cloud, initialize);
 
@@ -330,13 +356,15 @@ namespace pointcloud_utils
 		int skip_count = 0;
 		int pass_count = 0;
 		//fill grid -------------------------------------------------
-		for (T pt : cloud) 
-		{	
+		for (uint n = 0; n < cloud.size(); n += 1 + settings.point_skip_num)
+		{
+			skip_count += settings.point_skip_num;
+
+			T pt = cloud[n];
 			const float* intensity;
 			intensity = pointcloud_utils::getIntensity(pt);
 
-			//TODO: technically, we should place all the black points before ray-tracing...
-
+			// Filter the cloud by intensity and height
 			if (pt.z < settings.z_min || pt.z > settings.z_max ||
 				pt.x < settings.x_min || pt.x > settings.x_max ||
 				pt.y < settings.y_min || pt.y > settings.y_max)
@@ -353,7 +381,7 @@ namespace pointcloud_utils
 						continue;
 					}
 				}
-				
+
 				pass_count++;
 			}
 	
@@ -420,7 +448,7 @@ namespace pointcloud_utils
 			}
 	
 			//if point within bounds, use it to populate the grid
-			if (i < settings.map_height && j < settings.map_width && i >= 0 && j >= 0 && pt.z > settings.z_min && pt.z < settings.z_max)
+			if (i < (uint) settings.map_height && j < (uint) settings.map_width && i >= 0 && j >= 0 && pt.z > settings.z_min && pt.z < settings.z_max)
 			{
 				//mark solid objects
 				map_grid_bytes[settings.map_width * (settings.map_height - i) + (settings.map_width - j)] = (int) pointcloud_utils::costmapValues::OCCUPIED;

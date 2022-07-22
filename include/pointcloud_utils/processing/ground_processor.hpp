@@ -9,37 +9,56 @@
 #define GROUND_PROCESSOR_HPP
 
 // --------------------------
-#include <sensor_msgs/PointCloud2.h>
-#include <sensor_msgs/PointField.h>
+#include <sensor_msgs/msg/point_cloud2.hpp>
+#include <sensor_msgs/msg/point_field.hpp>
 
 #include <Eigen/Dense>
 
 #include <pointcloud_utils/pointcloud_utils.hpp>
 #include "pointcloud_utils/processing/plane_parser.hpp"
+#include "pointcloud_utils/processing/plane_parser_impl.hpp"
+
+#include <math.h>
 // --------------------------
 
 namespace pointcloud_utils
 {
-	class GroundProcessor
+	struct GroundProcessorSettings
+	{
+		plane_parser_utils::Settings plane_parser_settings; //setings for the plane parser instance
+		pointcloud_utils::SearchWindow plane_search_window; //search window for the plane fit
+		std::string aligned_cloud_frame; //name of frame to report ground-aligned scans in
+		
+		float point_to_plane_tolerance; //[m] maximum acceptable distance for a point to be away from the plane and still be considerd planar
+		float pt_slope_threshold; //[rad] maximum acceptable slope between previously detected ground point and current point to consider current point as ground
+		
+		float intensity_min;
+		float intensity_max;
+
+		//Bounds used in non-ground and ground clouds:
+		float x_min;
+		float x_max;
+		float y_min;
+		float y_max;
+		float z_min;
+		float z_max;
+
+		float ego_x_min;
+		float ego_x_max;
+		float ego_y_min;
+		float ego_y_max;
+		float ego_z_min;
+		float ego_z_max;
+	};
+	
+	template <class T> class GroundProcessor
 	{
 	public:
 
-		struct Settings
-		{
-			PlaneParser::Settings plane_parser_settings; //setings for the plane parser instance
-			pointcloud_utils::SearchWindow plane_search_window; //search window for the plane fit
-			std::string aligned_cloud_frame; //name of frame to report ground-aligned scans in
-			
-			float point_to_plane_tolerance; //[m] maximum acceptable distance for a point to be away from the plane and still be considerd planar
-			
-			float intensity_min;
-			float intensity_max;
-		};
-
-		GroundProcessor(GroundProcessor::Settings& settings);
+		GroundProcessor(GroundProcessorSettings& settings);
 		~GroundProcessor();
 
-		void updateSettings(GroundProcessor::Settings& settings);
+		void updateSettings(GroundProcessorSettings& settings);
 
 		//TODO: make a templated version which requires the specification of a pointstruct type
 		/**
@@ -50,7 +69,7 @@ namespace pointcloud_utils
 		 * @param 		cloud - space to store converted 3D cloud
 		 * @return 		void
 		 */
-		void updateCloud(const sensor_msgs::PointCloud2::ConstPtr& cloud_in, std::vector<pointcloud_utils::pointstruct>& cloud);
+		void updateCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_in, std::vector<T>& cloud);
 		
 		/**
 		 * @function 	returnPlaneDescriptors
@@ -59,7 +78,7 @@ namespace pointcloud_utils
 		 * @param 		plane_states - place to store the found plane states
 		 * @return 		void
 		 */
-		void returnPlaneDescriptors(PlaneParser::PlaneParameters& plane_parameters, PlaneParser::States& plane_states);
+		void returnPlaneDescriptors(plane_parser_utils::PlaneParameters& plane_parameters, plane_parser_utils::States& plane_states);
 
 		//TODO: make a templated version which requires the specification of a pointstruct type
 		/**
@@ -70,7 +89,7 @@ namespace pointcloud_utils
 		 * @param 		cloud - point vector version of the aligned cloud
 		 * @return 		void
 		 */
-		void alignToGround(std::vector<pointcloud_utils::pointstruct>& cloud_in, sensor_msgs::PointCloud2& aligned_cloud, std::vector<pointcloud_utils::pointstruct>& cloud);
+		void alignToGround(std::vector<T>& cloud_in, sensor_msgs::msg::PointCloud2& aligned_cloud, std::vector<T>& cloud);
 		
 		//TODO: make a templated version which requires the specification of a pointstruct type
 		/**
@@ -81,7 +100,7 @@ namespace pointcloud_utils
 		 * @param 		cloud - point vector version of the aligned cloud
 		 * @return 		void
 		 */
-		void alignToGround(sensor_msgs::PointCloud2& cloud_in, sensor_msgs::PointCloud2& aligned_cloud, std::vector<pointcloud_utils::pointstruct>& cloud);
+		void alignToGround(sensor_msgs::msg::PointCloud2& cloud_in, sensor_msgs::msg::PointCloud2& aligned_cloud, std::vector<T>& cloud);
 
 		//TODO: make a templated version which requires the specification of a pointstruct type
 		/**
@@ -91,7 +110,7 @@ namespace pointcloud_utils
 		 * @param 		cloud - point vector version of the aligned cloud
 		 * @return 		void
 		 */
-		void alignToGround(sensor_msgs::PointCloud2& aligned_cloud, std::vector<pointcloud_utils::pointstruct>& cloud);
+		void alignToGround(sensor_msgs::msg::PointCloud2& aligned_cloud, std::vector<T>& cloud);
 
 		//TODO: make a templated version which requires the specification of a pointstruct type
 		/**
@@ -105,26 +124,26 @@ namespace pointcloud_utils
 		 */
 		void separateGround
 		(
-			sensor_msgs::PointCloud2& ground_msg, 
-			sensor_msgs::PointCloud2& nonground_msg, 
-			std::vector<pointcloud_utils::pointstruct>& ground,
-			std::vector<pointcloud_utils::pointstruct>& nonground
+			sensor_msgs::msg::PointCloud2& ground_msg, 
+			sensor_msgs::msg::PointCloud2& nonground_msg, 
+			std::vector<T>& ground,
+			std::vector<T>& nonground
 		);
 		
 	private:
 		// --------------------------
-		PlaneParser* plane_parser;
-		GroundProcessor::Settings settings;
+		PlaneParser<T>* plane_parser;
+		GroundProcessorSettings settings;
 
-		std::vector<pointcloud_utils::pointstruct> current_cloud;
+		std::vector<T> current_cloud;
 
-		std_msgs::Header header;
-		std::vector<sensor_msgs::PointField> fields;
+		std_msgs::msg::Header header;
+		std::vector<sensor_msgs::msg::PointField> fields;
 		uint32_t point_step;
 
 		//current ground stats:
-		PlaneParser::PlaneParameters plane_parameters;
-		PlaneParser::States plane_states;
+		plane_parser_utils::PlaneParameters plane_parameters;
+		plane_parser_utils::States plane_states;
 
 		bool plane_detected;
 		// --------------------------
@@ -137,7 +156,7 @@ namespace pointcloud_utils
 		 * @param 		transform - transform to use
 		 * @return 		void
 		 */
-		void transformCloud(std::vector<pointcloud_utils::pointstruct>& cloud, Eigen::Matrix4f& transform);
+		void transformCloud(std::vector<T>& cloud, Eigen::Matrix4f& transform);
 
 		//TODO: make a templated version which requires the specification of a pointstruct type
 		/**
@@ -149,7 +168,7 @@ namespace pointcloud_utils
 		 * @param 		plane_states - place to store detected plane states
 		 * @return 		void
 		 */
-		void detectGround(const sensor_msgs::PointCloud2::ConstPtr& cloud_in, std::vector<pointcloud_utils::pointstruct>& cloud, PlaneParser::PlaneParameters& plane_parameters, PlaneParser::States& plane_states);
+		void detectGround(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_in, std::vector<T>& cloud, plane_parser_utils::PlaneParameters& plane_parameters, plane_parser_utils::States& plane_states);
 	}; //end class IntensityFilter
 
 } //end namespace pointcloud_utils
