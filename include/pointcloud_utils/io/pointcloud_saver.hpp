@@ -88,7 +88,7 @@ private:
  	 * @Return 		void
  	 * @Brief 		Saves the given cloud to a default file with an incremented counter in the name
  	 */
-	void savePointsToFile(std::vector<pointcloud_utils::luminarPointstruct>& cloud);
+	void savePointsToFile(const std::vector<pointcloud_utils::luminarPointstruct>& cloud);
 	
 	/**
 	 * @Function 	savePointsToFile
@@ -97,7 +97,7 @@ private:
 	 * @Return 		void
 	 * @Brief 		Saves the given cloud to a default file with an incremented counter in the name
 	 */
-	void savePointsToFile(std::vector<pointcloud_utils::luminarPointstruct>& cloud, const std::string& filename);
+	void savePointsToFile(const std::vector<pointcloud_utils::luminarPointstruct>& cloud, const std::string& filename);
 
 };
 

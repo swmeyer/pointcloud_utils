@@ -161,7 +161,7 @@ void PointCloudSaver::saveTimesToFile()
  * @Return 		void
  * @Brief 		Saves the given cloud to a default file with an incremented counter in the name
  */
-void PointCloudSaver::savePointsToFile(std::vector<pointcloud_utils::luminarPointstruct>& cloud)
+void PointCloudSaver::savePointsToFile(const std::vector<pointcloud_utils::luminarPointstruct>& cloud)
 {
 	while (save_mutex.try_lock()) {/*spin*/}
 
@@ -180,7 +180,7 @@ void PointCloudSaver::savePointsToFile(std::vector<pointcloud_utils::luminarPoin
  * @Return 		void
  * @Brief 		Saves the given cloud to a default file with an incremented counter in the name
  */
-void PointCloudSaver::savePointsToFile(std::vector<pointcloud_utils::luminarPointstruct>& cloud, const std::string& filename)
+void PointCloudSaver::savePointsToFile(const std::vector<pointcloud_utils::luminarPointstruct>& cloud, const std::string& filename)
 {
 	//Open file
 	std::ofstream file;
