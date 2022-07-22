@@ -165,12 +165,12 @@ class PointCloudCombinerNode : public rclcpp::Node
 
 		~PointCloudCombinerNode()
 		{
+			this->pt_cloud_saver->saveTimesToFile();
+			delete this->pt_cloud_saver;
+			
 			this->bagread_thread->join();
 			delete this->bagread_thread;
 
-			this->pt_cloud_saver->saveTimesToFile();
-			delete this->pt_cloud_saver;
-			usleep(5*S_TO_MS);
 		}
 
 	private:
@@ -363,6 +363,8 @@ class PointCloudCombinerNode : public rclcpp::Node
                 
             }
             RCLCPP_INFO(this->get_logger(), "Finished reading bag");
+
+			// this->pt_cloud_saver->saveTimesToFile();
 		}
 
 		void timerCallback()
