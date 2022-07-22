@@ -55,22 +55,29 @@ void PointCloudSaver::setCurrentCloud(const sensor_msgs::msg::PointCloud2::Share
 	cloud2.resize(cloud->width);
 	std::memcpy(&(cloud2[0]), &(cloud->data[0]), cloud->row_step);
 
-	//call save to file
-	if (filename == "")
-	{
-		this->savePointsToFile(cloud2);
-	} else
-	{
-		this->savePointsToFile(cloud2, filename);
-	}
-
-	// std::cout << "Seconds: " << cloud->header.stamp.sec << ", nanosec: " << cloud->header.stamp.nanosec * 10e-10 << "\n";
-
 	double time = cloud->header.stamp.sec + (cloud->header.stamp.nanosec * 10e-10);
-	// std::cout.precision(17);
-	// std::cout << "time: " << std::fixed << (double) time << "\n";
 
-	this->times.push_back(time);
+	this->setCurrentCloud(cloud2, time, filename);
+}
+
+/**
+ * @Function 	setCurrentCloud
+ * @Brief 		Manually sets the next cloud to process into the saver, and
+ * 				initiates the processing on this new cloud
+ * @Param		cloud - the point cloud to process
+ * @Param 		filename - filename to save to. if empty, use a constructed default file name (default: empty)
+ * @Return      void
+ */
+void PointCloudSaver::setCurrentCloud(const sensor_msgs::msg::PointCloud2& cloud, const std::string& filename)
+{
+	//memcpy into a struct (parses the data into the struct values)
+	std::vector<pointcloud_utils::luminarPointstruct> cloud2;
+	cloud2.resize(cloud.width);
+	std::memcpy(&(cloud2[0]), &(cloud.data[0]), cloud.row_step);
+
+	double time = cloud.header.stamp.sec + (cloud.header.stamp.nanosec * 10e-10);
+
+	this->setCurrentCloud(cloud2, time, filename);
 }
 
 /**
@@ -84,6 +91,7 @@ void PointCloudSaver::setCurrentCloud(const sensor_msgs::msg::PointCloud2::Share
  */
 void PointCloudSaver::setCurrentCloud(const std::vector<pointcloud_utils::luminarPointstruct>& cloud, const double& time, const std::string& filename)
 {
+	std::cout << "Saving " << cloud.size() << " points to file " << filename << "\n";
 	//call save to file
 	if (filename == "")
 	{

@@ -48,6 +48,16 @@ public:
 	 * @Brief 		Manually sets the next cloud to process into the saver, and
 	 * 				initiates the processing on this new cloud
 	 * @Param		cloud - the point cloud to process
+	 * @Param 		filename - filename to save to. if empty, use a constructed default file name (default: empty)
+	 * @Return      void
+	 */
+	void setCurrentCloud(const sensor_msgs::msg::PointCloud2& cloud, const std::string& filename="");
+
+	/**
+	 * @Function 	setCurrentCloud
+	 * @Brief 		Manually sets the next cloud to process into the saver, and
+	 * 				initiates the processing on this new cloud
+	 * @Param		cloud - the point cloud to process
 	 * @Param 		time - time of the given cloud
 	 * @Param 		filename - filename to save to. if empty, use a constructed default file name (default: empty)
 	 * @Return      void

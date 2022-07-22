@@ -15,10 +15,12 @@
 
 #include "pointcloud_utils/pointcloud_utils.hpp"
 #include "pointcloud_utils/pointcloud_utils_impl.hpp"
+#include "pointcloud_utils/io/pointcloud_saver.hpp"
 
 #include <chrono>
 #include <mutex>
 #include <thread>
+#include <unistd.h>     //required for usleep()
 
 // --------------------------
 
@@ -55,6 +57,8 @@ class PointCloudCombinerNode : public rclcpp::Node
             this->declare_parameter<std::string>("bagfile", "../rosbag2_test_data");
 			this->declare_parameter<bool>("wait_for_finish_msg", false);
 			this->declare_parameter<std::string>("finish_msg_topic", "/walls_finished");
+			this->declare_parameter<float>("bag_read_wait", 0.25);
+			this->declare_parameter<bool>("save_to_file", false);
 
 			this->declare_parameter<bool>("invert_tf", false);
 
@@ -101,9 +105,11 @@ class PointCloudCombinerNode : public rclcpp::Node
 
 			this->get_parameter<bool>("drop_old_clouds", 	this->drop_old_clouds);
 			this->get_parameter<bool>("read_from_bag", 		this->read_from_bag);
-            this->get_parameter<std::string>("bagfile", this->bagfile);
+            this->get_parameter<std::string>("bagfile", 	this->bagfile);
 			this->get_parameter<bool>("wait_for_finish_msg", this->wait_for_finish_msg);
 			this->get_parameter<std::string>("finish_msg_topic", finish_msg_topic);
+			this->get_parameter<float>("bag_read_wait", 	this->bag_read_wait);
+			this->get_parameter<bool>("save_to_file", 		this->save_to_file);
 
 			this->get_parameter<bool>("invert_tf", 			this->invert_tf);
 
@@ -127,6 +133,11 @@ class PointCloudCombinerNode : public rclcpp::Node
 			this->get_parameter<double>("roll_3", 	tf3.roll);
 			this->get_parameter<double>("pitch_3", 	tf3.pitch);
 			this->get_parameter<double>("yaw_3", 	tf3.yaw);
+
+			if (this->save_to_file)
+			{
+				this->pt_cloud_saver = new pointcloud_utils::PointCloudSaver("points", ".csv");
+			}
 
 			if (this->wait_for_finish_msg)
 			{
@@ -156,9 +167,16 @@ class PointCloudCombinerNode : public rclcpp::Node
 		{
 			this->bagread_thread->join();
 			delete this->bagread_thread;
+
+			this->pt_cloud_saver->saveTimesToFile();
+			delete this->pt_cloud_saver;
+			usleep(5*S_TO_MS);
 		}
 
 	private:
+		//Constants
+		const int S_TO_MS = 1000000;
+
 		//Variables
 		bool use_luminar_pointstruct; //if true, use luminar pointstruct. otherwise, use basic pointstruct
 		bool use_current_time; //if true, use time now in headers. otherwise, use sensor time
@@ -177,6 +195,8 @@ class PointCloudCombinerNode : public rclcpp::Node
 		bool drop_old_clouds; 
 		bool read_from_bag;
 		bool wait_for_finish_msg;
+		float bag_read_wait;
+		bool save_to_file;
 
 		sensor_msgs::msg::PointCloud2 cloud1;
 		sensor_msgs::msg::PointCloud2 cloud2;
@@ -211,6 +231,8 @@ class PointCloudCombinerNode : public rclcpp::Node
 
 
     	rclcpp::TimerBase::SharedPtr timer;
+
+		pointcloud_utils::PointCloudSaver *pt_cloud_saver;
 
 
 		//Methods
@@ -328,14 +350,19 @@ class PointCloudCombinerNode : public rclcpp::Node
                 	RCLCPP_INFO(this->get_logger(), "waiting for finish process");
                 	while(!this->finished_received && rclcpp::ok())
                 	{
-
+                		usleep(0.1 * S_TO_MS);
                 	}
                 	RCLCPP_INFO(this->get_logger(), "received process finished message!");
                 	this->finished_received = false;
+                } else if (has_all_clouds)
+                {
+     				//wait a bit before trying to do another one
+					usleep(this->bag_read_wait * S_TO_MS);
                 }
 
                 
             }
+            RCLCPP_INFO(this->get_logger(), "Finished reading bag");
 		}
 
 		void timerCallback()
@@ -556,6 +583,10 @@ class PointCloudCombinerNode : public rclcpp::Node
 			{	
 				RCLCPP_INFO(this->get_logger(), "Publishing nonempty cloud");
 				this->cloud_pub->publish(combined_cloud);
+				if (this->save_to_file)
+				{
+					this->pt_cloud_saver->setCurrentCloud(combined_cloud);
+				}
 			}
 
 		}

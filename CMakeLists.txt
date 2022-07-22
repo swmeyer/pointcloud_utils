@@ -85,8 +85,9 @@ add_executable(pointcloud_grid_parser src/conversion/pointcloud_grid_parser_node
 ament_target_dependencies(pointcloud_grid_parser rclcpp std_msgs sensor_msgs nav_msgs tf2_sensor_msgs geometry_msgs)
 # target_link_libraries(pointcloud_grid_parser pointcloud_utils)
 
-add_executable(cloud_combiner src/conversion/pointcloud_combiner_node3.cpp)
+add_executable(cloud_combiner src/conversion/pointcloud_combiner_node3.cpp src/io/pointcloud_saver.cpp)
 ament_target_dependencies(cloud_combiner rclcpp std_msgs sensor_msgs Eigen3 rosbag2_cpp)
+# target_link_libraries(cloud_combiner pointcloud_utils::pointcloud_utils)
 
 #  add_executable(pointcloud_to_laserscan src/conversion/pointcloud_to_laserscan.cpp src/conversion/pointcloud_to_laserscan_node.cpp)
 #  ament_target_dependencies(pointcloud_to_laserscan )
